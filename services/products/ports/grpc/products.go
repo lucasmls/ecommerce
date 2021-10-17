@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/lucasmls/ecommerce/services/products/domain"
 	pb "github.com/lucasmls/ecommerce/services/products/ports/grpc/proto"
 	"go.uber.org/zap"
 )
@@ -11,6 +12,7 @@ import (
 // ProductsResolverInput ...
 type ProductsResolverInput struct {
 	Logger *zap.Logger
+	App    domain.Application
 }
 
 // ProductsResolver ...
@@ -32,15 +34,91 @@ func NewProductsResolver(in ProductsResolverInput) (*ProductsResolver, error) {
 
 func (r *ProductsResolver) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse, error) {
 	r.in.Logger.Info("received a request to list Products", zap.Strings("ids", req.Ids))
-	r.in.Logger.Error("failed to list products", zap.Error(errors.New("testing zap.Error")))
-	r.in.Logger.Debug("debug log!", zap.Int("int_value", 10), zap.Float32("float_value", 12))
-	r.in.Logger.Warn("warn log!", zap.Bool("bool_value", true))
+
+	products, err := r.in.App.ListProducts(ctx, domain.ListProductsFilter{
+		IDs: req.Ids,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	response := pb.ListResponse{
-		Data: []*pb.Product{
-			{Id: "1", Name: "Macbook Air M1", Description: "Fast!", Price: 6900},
-			{Id: "2", Name: "Macbook Pro M1", Description: "Super fast!", Price: 9000},
+		Data: []*pb.Product{},
+	}
+
+	for _, product := range products {
+		response.Data = append(response.Data, &pb.Product{
+			Id:          product.ID,
+			Name:        product.Name,
+			Description: product.Description,
+			Price:       product.Price,
+		})
+	}
+
+	return &response, nil
+}
+
+func (r *ProductsResolver) Register(ctx context.Context, req *pb.Product) (*pb.RegisterResponse, error) {
+	r.in.Logger.Info("registering a new product", zap.Any("product", req))
+
+	product, err := r.in.App.RegisterProduct(ctx, domain.Product{
+		ID:          req.Id,
+		Name:        req.Name,
+		Description: req.Description,
+		Price:       req.Price,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	response := &pb.RegisterResponse{
+		Data: &pb.Product{
+			Id:          product.ID,
+			Name:        product.Name,
+			Description: product.Description,
+			Price:       product.Price,
 		},
 	}
-	return &response, nil
+
+	return response, nil
+}
+
+func (r *ProductsResolver) Update(ctx context.Context, req *pb.Product) (*pb.UpdateResponse, error) {
+	r.in.Logger.Info("updating a product", zap.Any("product", req))
+
+	product, err := r.in.App.UpdateProduct(ctx, domain.Product{
+		ID:          req.Id,
+		Name:        req.Name,
+		Description: req.Description,
+		Price:       req.Price,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	response := &pb.UpdateResponse{
+		Data: &pb.Product{
+			Id:          product.ID,
+			Name:        product.Name,
+			Description: product.Description,
+			Price:       product.Price,
+		},
+	}
+
+	return response, nil
+}
+
+func (r *ProductsResolver) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
+	r.in.Logger.Info("deleting a product", zap.String("id", req.Id))
+
+	err := r.in.App.DeleteProduct(ctx, req.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	response := &pb.DeleteResponse{
+		Data: "Product deleted successfully",
+	}
+
+	return response, nil
 }

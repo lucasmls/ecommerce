@@ -11,14 +11,33 @@ message Product {
   float  price       = 4;
 }
 
-message ListResponse {
-  repeated Product data = 1;
-}
-
 message ListRequest {
   repeated string ids = 1; 
 }
 
+message DeleteRequest {
+  string id = 1;
+}
+
+message ListResponse {
+  repeated Product data = 1;
+}
+
+message RegisterResponse {
+  Product data = 1;
+}
+
+message UpdateResponse {
+  Product data = 1;
+}
+
+message DeleteResponse {
+  string data = 1;
+}
+
 service ProductsService {
   rpc List(ListRequest) returns (ListResponse);
+  rpc Register(Product) returns (RegisterResponse);
+  rpc Update(Product) returns (UpdateResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
 }
