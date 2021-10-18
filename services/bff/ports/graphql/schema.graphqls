@@ -1,0 +1,20 @@
+type Product {
+  id: ID!
+  name: String!
+  description: String!
+  price: Float!
+}
+
+type Query {
+  products: [Product!]!
+}
+
+input RegisterProductInput {
+  name: String!
+  description: String!
+  price: Float!
+}
+
+type Mutation {
+  registerProduct(input: RegisterProductInput!): Product!
+}
