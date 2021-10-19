@@ -32,7 +32,8 @@ func main() {
 	}
 
 	server, err := grpc.NewServer(grpc.ServerInput{
-		Port: 8080,
+		Port:   8081,
+		Logger: logger,
 		Registrator: func(server gGRPC.ServiceRegistrar) {
 			pb.RegisterProductsServiceServer(server, productsResolver)
 		},
