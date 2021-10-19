@@ -15,6 +15,14 @@ func (r *mutationResolver) RegisterProduct(ctx context.Context, input model.Regi
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *mutationResolver) UpdateProduct(ctx context.Context, input model.UpdateProductInput) (*model.Product, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) RemoveProduct(ctx context.Context, input model.RemoveProductInput) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Products(ctx context.Context) ([]*model.Product, error) {
 	panic(fmt.Errorf("not implemented"))
 }

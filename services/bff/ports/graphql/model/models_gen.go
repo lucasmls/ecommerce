@@ -14,3 +14,14 @@ type RegisterProductInput struct {
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
 }
+
+type RemoveProductInput struct {
+	ID string `json:"ID"`
+}
+
+type UpdateProductInput struct {
+	ID          string  `json:"ID"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Price       float64 `json:"price"`
+}
