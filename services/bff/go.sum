@@ -69,6 +69,10 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381/go.mod h1:7rIyQOR62GCctdiQpZ/zOJlFyk6y+94wXzv6RNZgaR4=
+github.com/lucasmls/ecommerce/services/products v0.0.0-20211019010026-2ed6e2591d9f h1:pxeGjo3qrfNcLG3PQSR9fOAfYwq3qmqE52qmusIQePI=
+github.com/lucasmls/ecommerce/services/products v0.0.0-20211019010026-2ed6e2591d9f/go.mod h1:T4JiEXQGAnedjKccvTU6/iQTkTQoukIcbgnQr4VWCqU=
+github.com/lucasmls/ecommerce/shared v0.0.0-20211019010026-2ed6e2591d9f h1:jes2mAqYnQ4CdXzrwSpsf6HM284o9BviY0s0BSQfZt8=
+github.com/lucasmls/ecommerce/shared v0.0.0-20211019010026-2ed6e2591d9f/go.mod h1:2j5XycNm6FvR97iFwWW2sw18PxhsmKi90ftLa11BfB8=
 github.com/matryer/moq v0.0.0-20200106131100-75d0ddfc0007/go.mod h1:9ELz6aaclSIGnZBoaSLZ3NAl1VTufbOrXBPvtcy6WiQ=
 github.com/mattn/go-colorable v0.1.4/go.mod h1:U0ppj6V5qS13XJ6of8GYAs25YV2eR4EVcfRqFIhoBtE=
 github.com/mattn/go-isatty v0.0.8/go.mod h1:Iq45c/XA43vh69/j3iqttzPXn0bhXyGjM0Hdxcsrc5s=

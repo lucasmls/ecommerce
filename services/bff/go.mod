@@ -2,14 +2,10 @@ module github.com/lucasmls/ecommerce/services/bff
 
 go 1.17
 
-replace github.com/lucasmls/ecommerce/shared => ../../shared
-
-replace github.com/lucasmls/ecommerce/services/products => ../products
-
 require (
 	github.com/99designs/gqlgen v0.14.0
-	github.com/lucasmls/ecommerce/services/products v0.0.0-00010101000000-000000000000
-	github.com/lucasmls/ecommerce/shared v0.0.0-00010101000000-000000000000
+	github.com/lucasmls/ecommerce/services/products v0.0.0-20211019010026-2ed6e2591d9f
+	github.com/lucasmls/ecommerce/shared v0.0.0-20211019010026-2ed6e2591d9f
 	github.com/vektah/gqlparser/v2 v2.2.0
 	go.uber.org/zap v1.19.1
 )

@@ -29,7 +29,8 @@ func main() {
 	}
 
 	productsServiceGRPCClient, err := grpc.NewClient(grpc.ClientInput{
-		Address: "localhost:8081",
+		// Address: "localhost:8081",
+		Address: "products-service.default.svc.cluster.local:8081",
 		Logger:  logger,
 	})
 	if err != nil {
