@@ -11,6 +11,12 @@ import (
 	resolvers "github.com/lucasmls/ecommerce/services/products/ports/grpc"
 	pb "github.com/lucasmls/ecommerce/services/products/ports/grpc/proto"
 	gGRPC "google.golang.org/grpc"
+
+	"go.opentelemetry.io/otel"
+	jaegerExporter "go.opentelemetry.io/otel/exporters/jaeger"
+	tracingSdkResource "go.opentelemetry.io/otel/sdk/resource"
+	tracingSdk "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
 
 func main() {
@@ -19,6 +25,31 @@ func main() {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 
+	jaegerExporter, err := jaegerExporter.New(
+		jaegerExporter.WithCollectorEndpoint(
+			jaegerExporter.WithEndpoint("http://localhost:14268/api/traces"),
+		),
+	)
+	if err != nil {
+		logger.Error("failed to instantiate Jaeger exporter", zap.Error(err))
+		return
+	}
+
+	tracingProvider := tracingSdk.NewTracerProvider(
+		tracingSdk.WithBatcher(jaegerExporter),
+		tracingSdk.WithResource(tracingSdkResource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceNameKey.String("ecommerce/products"),
+		)),
+	)
+
+	defer func() {
+		_ = tracingProvider.Shutdown(ctx)
+	}()
+
+	otel.SetTracerProvider(tracingProvider)
+
+	tracer := otel.Tracer("ecommerce/products")
 	productsInMemoryRepository := repositories.MustNewInMemoryProductsRepository(repositories.ProductsRepositoryInput{
 		Logger: logger,
 		Size:   10,
