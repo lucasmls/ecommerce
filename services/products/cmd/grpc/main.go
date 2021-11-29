@@ -19,7 +19,10 @@ func main() {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 
-	productsInMemoryRepository := repositories.MustNewInMemoryProductsRepository(10)
+	productsInMemoryRepository := repositories.MustNewInMemoryProductsRepository(repositories.ProductsRepositoryInput{
+		Logger: logger,
+		Size:   10,
+	})
 	application := app.MustNewApplication(app.ApplicationInput{
 		Logger:             logger,
 		ProductsRepository: productsInMemoryRepository,

@@ -9,17 +9,26 @@ import (
 	"github.com/lucasmls/ecommerce/services/products/domain"
 )
 
+// ProductsRepositoryInput holds all the dependencies needed to
+// instantiate ProductsRepository
+type ProductsRepositoryInput struct {
+	Logger *zap.Logger
+
+	Size int
+}
+
 type InMemoryProductsRepository struct {
+	in      ProductsRepositoryInput
 	storage map[string]domain.Product
 }
 
 // NewInMemoryProductsRepository creates a new InMemoryProductsRepository.
-func NewInMemoryProductsRepository(size int) (InMemoryProductsRepository, error) {
-	if size == 0 {
+func NewInMemoryProductsRepository(in ProductsRepositoryInput) (InMemoryProductsRepository, error) {
+	if in.Size == 0 {
 		return InMemoryProductsRepository{}, errors.New("invalid-storage-size")
 	}
 
-	storage := make(map[string]domain.Product, size)
+	storage := make(map[string]domain.Product, in.Size)
 
 	storage["10"] = domain.Product{
 		ID:          "10",
@@ -29,14 +38,15 @@ func NewInMemoryProductsRepository(size int) (InMemoryProductsRepository, error)
 	}
 
 	return InMemoryProductsRepository{
+		in:      in,
 		storage: storage,
 	}, nil
 }
 
 // MustNewInMemoryProductsRepository creates a new InMemoryProductsRepository.
 // It panics if any error is found.
-func MustNewInMemoryProductsRepository(size int) InMemoryProductsRepository {
-	repo, err := NewInMemoryProductsRepository(size)
+func MustNewInMemoryProductsRepository(in ProductsRepositoryInput) InMemoryProductsRepository {
+	repo, err := NewInMemoryProductsRepository(in)
 	if err != nil {
 		panic(err)
 	}
