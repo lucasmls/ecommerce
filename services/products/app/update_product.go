@@ -8,6 +8,8 @@ import (
 )
 
 func (a application) UpdateProduct(ctx context.Context, product domain.Product) (domain.Product, error) {
+	ctx, span := a.in.Tracer.Start(ctx, "app.UpdateProduct")
+	defer span.End()
 
 	a.in.Logger.Info("updating a product", zap.Any("product", product))
 

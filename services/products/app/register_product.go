@@ -8,6 +8,8 @@ import (
 )
 
 func (a application) RegisterProduct(ctx context.Context, product domain.Product) (domain.Product, error) {
+	ctx, span := a.in.Tracer.Start(ctx, "app.RegisterProduct")
+	defer span.End()
 
 	a.in.Logger.Info("registering a new product", zap.Any("product", product))
 

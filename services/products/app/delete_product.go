@@ -7,6 +7,8 @@ import (
 )
 
 func (a application) DeleteProduct(ctx context.Context, id string) error {
+	ctx, span := a.in.Tracer.Start(ctx, "app.DeleteProduct")
+	defer span.End()
 
 	a.in.Logger.Info("deleting a product", zap.Any("id", id))
 

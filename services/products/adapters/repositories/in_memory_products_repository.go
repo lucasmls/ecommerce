@@ -59,6 +59,9 @@ func MustNewInMemoryProductsRepository(in ProductsRepositoryInput) InMemoryProdu
 
 // Create creates a new Product in-memory.
 func (r InMemoryProductsRepository) Create(ctx context.Context, product domain.Product) (domain.Product, error) {
+	_, span := r.in.Tracer.Start(ctx, "repository.Create")
+	defer span.End()
+
 	id := strconv.Itoa(rand.Intn(1000))
 	product.ID = id
 
@@ -68,12 +71,18 @@ func (r InMemoryProductsRepository) Create(ctx context.Context, product domain.P
 
 // Update updates a product in-memory.
 func (r InMemoryProductsRepository) Update(ctx context.Context, product domain.Product) (domain.Product, error) {
+	_, span := r.in.Tracer.Start(ctx, "repository.Update")
+	defer span.End()
+
 	r.storage[product.ID] = product
 	return product, nil
 }
 
 // Delete deletes a Product from memory.
 func (r InMemoryProductsRepository) Delete(ctx context.Context, id string) error {
+	_, span := r.in.Tracer.Start(ctx, "repository.Delete")
+	defer span.End()
+
 	_, found := r.storage[id]
 	if !found {
 		return errors.New("not-found")
@@ -86,6 +95,9 @@ func (r InMemoryProductsRepository) Delete(ctx context.Context, id string) error
 
 // List list all products from memory.
 func (r InMemoryProductsRepository) List(ctx context.Context, filter domain.ListProductsFilter) ([]domain.Product, error) {
+	_, span := r.in.Tracer.Start(ctx, "repository.List")
+	defer span.End()
+
 	result := []domain.Product{}
 
 	for _, v := range r.storage {

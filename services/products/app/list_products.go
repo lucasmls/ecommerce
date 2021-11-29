@@ -8,6 +8,8 @@ import (
 )
 
 func (a application) ListProducts(ctx context.Context, filter domain.ListProductsFilter) ([]domain.Product, error) {
+	ctx, span := a.in.Tracer.Start(ctx, "app.ListProducts")
+	defer span.End()
 
 	a.in.Logger.Info("listing products", zap.Any("filter", filter))
 

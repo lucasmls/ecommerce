@@ -46,6 +46,9 @@ func MustNewProductsResolver(in ProductsResolverInput) *ProductsResolver {
 }
 
 func (r *ProductsResolver) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse, error) {
+	ctx, span := r.in.Tracer.Start(ctx, "resolver.List")
+	defer span.End()
+
 	r.in.Logger.Info("received a request to list Products", zap.Strings("ids", req.Ids))
 
 	products, err := r.in.App.ListProducts(ctx, domain.ListProductsFilter{
@@ -72,6 +75,9 @@ func (r *ProductsResolver) List(ctx context.Context, req *pb.ListRequest) (*pb.L
 }
 
 func (r *ProductsResolver) Register(ctx context.Context, req *pb.Product) (*pb.RegisterResponse, error) {
+	ctx, span := r.in.Tracer.Start(ctx, "resolver.Register")
+	defer span.End()
+
 	r.in.Logger.Info("registering a new product", zap.Any("product", req))
 
 	product, err := r.in.App.RegisterProduct(ctx, domain.Product{
@@ -97,6 +103,9 @@ func (r *ProductsResolver) Register(ctx context.Context, req *pb.Product) (*pb.R
 }
 
 func (r *ProductsResolver) Update(ctx context.Context, req *pb.Product) (*pb.UpdateResponse, error) {
+	ctx, span := r.in.Tracer.Start(ctx, "resolver.Update")
+	defer span.End()
+
 	r.in.Logger.Info("updating a product", zap.Any("product", req))
 
 	product, err := r.in.App.UpdateProduct(ctx, domain.Product{
@@ -122,6 +131,9 @@ func (r *ProductsResolver) Update(ctx context.Context, req *pb.Product) (*pb.Upd
 }
 
 func (r *ProductsResolver) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
+	ctx, span := r.in.Tracer.Start(ctx, "resolver.Delete")
+	defer span.End()
+
 	r.in.Logger.Info("deleting a product", zap.String("id", req.Id))
 
 	err := r.in.App.DeleteProduct(ctx, req.Id)
