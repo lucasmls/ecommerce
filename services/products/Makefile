@@ -37,5 +37,12 @@ gen-proto:
 		--go-grpc_opt=paths=source_relative \
     ports/grpc/proto/*.proto
 
+mock:
+	@ echo "Starting building mocks..."
+	@ echo
+	@ mkdir -p mocks
+	@ rm mocks/*.go || true && \
+		mockgen -source=./domain/contracts.go -destination=./mocks/domain.go -package=mocks
+
 %:
 	@:
