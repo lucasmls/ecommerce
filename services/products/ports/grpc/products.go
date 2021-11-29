@@ -6,6 +6,7 @@ import (
 
 	"github.com/lucasmls/ecommerce/services/products/domain"
 	pb "github.com/lucasmls/ecommerce/services/products/ports/grpc/proto"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -13,6 +14,7 @@ import (
 type ProductsResolverInput struct {
 	Logger *zap.Logger
 	App    domain.Application
+	Tracer trace.Tracer
 }
 
 // ProductsResolver ...

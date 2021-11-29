@@ -8,6 +8,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/lucasmls/ecommerce/services/products/domain"
 	"github.com/lucasmls/ecommerce/services/products/mocks"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -24,7 +25,7 @@ func TestListProducts(t *testing.T) {
 				productsRepoM := mocks.NewMockProductsRepository(g)
 
 				productsRepoM.EXPECT().
-					List(c, domain.ListProductsFilter{}).
+					List(gomock.Any(), domain.ListProductsFilter{}).
 					Return([]domain.Product{}, errors.New("failed to list products from the datastore"))
 
 				return productsRepoM
@@ -42,6 +43,7 @@ func TestListProducts(t *testing.T) {
 				in: ApplicationInput{
 					Logger:             logger,
 					ProductsRepository: tc.productsRepositoryM(ctx, ctrl),
+					Tracer:             trace.NewNoopTracerProvider().Tracer(""),
 				},
 			}
 

@@ -7,12 +7,15 @@ import (
 	"strconv"
 
 	"github.com/lucasmls/ecommerce/services/products/domain"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 )
 
 // ProductsRepositoryInput holds all the dependencies needed to
 // instantiate ProductsRepository
 type ProductsRepositoryInput struct {
 	Logger *zap.Logger
+	Tracer trace.Tracer
 
 	Size int
 }

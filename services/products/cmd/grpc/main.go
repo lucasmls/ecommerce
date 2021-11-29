@@ -50,17 +50,22 @@ func main() {
 	otel.SetTracerProvider(tracingProvider)
 
 	tracer := otel.Tracer("ecommerce/products")
+
 	productsInMemoryRepository := repositories.MustNewInMemoryProductsRepository(repositories.ProductsRepositoryInput{
 		Logger: logger,
+		Tracer: tracer,
 		Size:   10,
 	})
+
 	application := app.MustNewApplication(app.ApplicationInput{
 		Logger:             logger,
+		Tracer:             tracer,
 		ProductsRepository: productsInMemoryRepository,
 	})
 
 	productsResolver := resolvers.MustNewProductsResolver(resolvers.ProductsResolverInput{
 		Logger: logger,
+		Tracer: tracer,
 		App:    application,
 	})
 

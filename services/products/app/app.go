@@ -10,6 +10,7 @@ import (
 // instantiate the Application
 type ApplicationInput struct {
 	Logger *zap.Logger
+	Tracer trace.Tracer
 
 	ProductsRepository domain.ProductsRepository
 }
