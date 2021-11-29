@@ -20,7 +20,10 @@ func main() {
 	defer logger.Sync()
 
 	productsInMemoryRepository := repositories.MustNewInMemoryProductsRepository(10)
-	application := app.MustNewApplication(logger, productsInMemoryRepository)
+	application := app.MustNewApplication(app.ApplicationInput{
+		Logger:             logger,
+		ProductsRepository: productsInMemoryRepository,
+	})
 
 	productsResolver := resolvers.MustNewProductsResolver(resolvers.ProductsResolverInput{
 		Logger: logger,

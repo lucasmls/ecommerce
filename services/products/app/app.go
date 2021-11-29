@@ -2,32 +2,33 @@ package app
 
 import (
 	"github.com/lucasmls/ecommerce/services/products/domain"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
+// ApplicationInput holds all the dependencies needed to
+// instantiate the Application
+type ApplicationInput struct {
+	Logger *zap.Logger
+
+	ProductsRepository domain.ProductsRepository
+}
+
 type application struct {
-	logger             *zap.Logger
-	productsRepository domain.ProductsRepository
+	in ApplicationInput
 }
 
 // NewApplication creates a new Application instance
-func NewApplication(
-	logger *zap.Logger,
-	productsRepository domain.ProductsRepository,
-) (application, error) {
+func NewApplication(in ApplicationInput) (application, error) {
 	return application{
-		logger:             logger,
-		productsRepository: productsRepository,
+		in: in,
 	}, nil
 }
 
 // MustNewApplication creates a new Application instance
 // It panics if any error is found
-func MustNewApplication(
-	logger *zap.Logger,
-	productsRepository domain.ProductsRepository,
-) application {
-	app, err := NewApplication(logger, productsRepository)
+func MustNewApplication(in ApplicationInput) application {
+	app, err := NewApplication(in)
 	if err != nil {
 		panic(err)
 	}

@@ -39,8 +39,10 @@ func TestListProducts(t *testing.T) {
 			logger, _ := zap.NewDevelopment()
 
 			a := application{
-				logger:             logger,
-				productsRepository: tc.productsRepositoryM(ctx, ctrl),
+				in: ApplicationInput{
+					Logger:             logger,
+					ProductsRepository: tc.productsRepositoryM(ctx, ctrl),
+				},
 			}
 
 			_, err := a.ListProducts(ctx, domain.ListProductsFilter{})

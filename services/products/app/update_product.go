@@ -8,9 +8,10 @@ import (
 )
 
 func (a application) UpdateProduct(ctx context.Context, product domain.Product) (domain.Product, error) {
-	a.logger.Info("updating a product", zap.Any("product", product))
 
-	updatedProduct, err := a.productsRepository.Update(ctx, product)
+	a.in.Logger.Info("updating a product", zap.Any("product", product))
+
+	updatedProduct, err := a.in.ProductsRepository.Update(ctx, product)
 	if err != nil {
 		return domain.Product{}, err
 	}

@@ -7,9 +7,10 @@ import (
 )
 
 func (a application) DeleteProduct(ctx context.Context, id string) error {
-	a.logger.Info("deleting a product", zap.Any("id", id))
 
-	err := a.productsRepository.Delete(ctx, id)
+	a.in.Logger.Info("deleting a product", zap.Any("id", id))
+
+	err := a.in.ProductsRepository.Delete(ctx, id)
 	if err != nil {
 		return err
 	}

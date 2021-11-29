@@ -8,9 +8,10 @@ import (
 )
 
 func (a application) RegisterProduct(ctx context.Context, product domain.Product) (domain.Product, error) {
-	a.logger.Info("registering a new product", zap.Any("product", product))
 
-	registeredProduct, err := a.productsRepository.Create(ctx, product)
+	a.in.Logger.Info("registering a new product", zap.Any("product", product))
+
+	registeredProduct, err := a.in.ProductsRepository.Create(ctx, product)
 	if err != nil {
 		return domain.Product{}, err
 	}
