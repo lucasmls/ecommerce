@@ -22,14 +22,10 @@ func main() {
 	productsInMemoryRepository := repositories.MustNewInMemoryProductsRepository(10)
 	application := app.MustNewApplication(logger, productsInMemoryRepository)
 
-	productsResolver, err := resolvers.NewProductsResolver(resolvers.ProductsResolverInput{
+	productsResolver := resolvers.MustNewProductsResolver(resolvers.ProductsResolverInput{
 		Logger: logger,
 		App:    application,
 	})
-	if err != nil {
-		logger.Error("failed to instantiate Users resolver.", zap.Error(err))
-		return
-	}
 
 	server, err := grpc.NewServer(grpc.ServerInput{
 		Port:   8081,
@@ -39,12 +35,12 @@ func main() {
 		},
 	})
 	if err != nil {
-		logger.Error("failed to instantiate gRPC server.", zap.Error(err))
+		logger.Error("failed to instantiate gRPC server", zap.Error(err))
 		return
 	}
 
 	if err := server.Run(ctx); err != nil {
-		logger.Error("failed to run gRPC server.", zap.Error(err))
+		logger.Error("failed to run gRPC server", zap.Error(err))
 		return
 	}
 }

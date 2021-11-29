@@ -32,6 +32,17 @@ func NewProductsResolver(in ProductsResolverInput) (*ProductsResolver, error) {
 	}, nil
 }
 
+// NewProductsResolver creates a new ProductsResolver instance
+// It panics if any error is found
+func MustNewProductsResolver(in ProductsResolverInput) *ProductsResolver {
+	app, err := NewProductsResolver(in)
+	if err != nil {
+		panic(err)
+	}
+
+	return app
+}
+
 func (r *ProductsResolver) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse, error) {
 	r.in.Logger.Info("received a request to list Products", zap.Strings("ids", req.Ids))
 
