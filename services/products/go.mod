@@ -3,10 +3,11 @@ module github.com/lucasmls/ecommerce/services/products
 go 1.17
 
 require (
+	github.com/golang/mock v1.6.0
+	github.com/lucasmls/ecommerce/shared v0.0.0-20211019010026-2ed6e2591d9f
 	go.uber.org/zap v1.19.1
 	google.golang.org/grpc v1.41.0
 	google.golang.org/protobuf v1.27.1
-	github.com/lucasmls/ecommerce/shared v0.0.0-20211019010026-2ed6e2591d9f
 )
 
 require (
