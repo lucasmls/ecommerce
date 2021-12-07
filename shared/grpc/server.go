@@ -46,6 +46,17 @@ func NewServer(in ServerInput) (*Server, error) {
 	}, nil
 }
 
+// MustNewServer is the GRPC Server constructor.
+// It panics if any error is found.
+func MustNewServer(in ServerInput) *Server {
+	server, err := NewServer(in)
+	if err != nil {
+		panic(err)
+	}
+
+	return server
+}
+
 func (s Server) Run(ctx context.Context) error {
 	s.in.Registrator(s.server)
 

@@ -25,6 +25,17 @@ func NewClient(in ClientInput) (*Client, error) {
 	return &Client{in: in}, nil
 }
 
+// MustNewClient is the gRPC client constructor
+// It panics if any error is found
+func MustNewClient(in ClientInput) *Client {
+	client, err := NewClient(in)
+	if err != nil {
+		panic(err)
+	}
+
+	return client
+}
+
 // Connect into a gRPC server
 func (c Client) Connect(ctx context.Context) (*grpc.ClientConn, error) {
 	c.in.Logger.Info("connecting to gRPc server", zap.String("address", c.in.Address))
@@ -41,4 +52,15 @@ func (c Client) Connect(ctx context.Context) (*grpc.ClientConn, error) {
 	}
 
 	return conn, nil
+}
+
+// MustConnect into a gRPC server
+// It panics if any error is found
+func (c Client) MustConnect(ctx context.Context) *grpc.ClientConn {
+	connection, err := c.Connect(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	return connection
 }
