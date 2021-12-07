@@ -14,6 +14,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	jaegerExporter "go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/propagation"
 	tracingSdkResource "go.opentelemetry.io/otel/sdk/resource"
 	tracingSdk "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
@@ -37,9 +38,10 @@ func main() {
 
 	tracingProvider := tracingSdk.NewTracerProvider(
 		tracingSdk.WithBatcher(jaegerExporter),
+		tracingSdk.WithSampler(tracingSdk.AlwaysSample()),
 		tracingSdk.WithResource(tracingSdkResource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceNameKey.String("ecommerce/products"),
+			semconv.ServiceNameKey.String("products"),
 		)),
 	)
 
@@ -48,8 +50,12 @@ func main() {
 	}()
 
 	otel.SetTracerProvider(tracingProvider)
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	))
 
-	tracer := otel.Tracer("ecommerce/products")
+	tracer := otel.Tracer("products")
 
 	productsInMemoryRepository := repositories.MustNewInMemoryProductsRepository(repositories.ProductsRepositoryInput{
 		Logger: logger,
