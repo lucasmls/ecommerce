@@ -75,17 +75,13 @@ func main() {
 		App:    application,
 	})
 
-	server, err := grpc.NewServer(grpc.ServerInput{
+	server := grpc.MustNewServer(grpc.ServerInput{
 		Port:   8081,
 		Logger: logger,
 		Registrator: func(server gGRPC.ServiceRegistrar) {
 			pb.RegisterProductsServiceServer(server, productsResolver)
 		},
 	})
-	if err != nil {
-		logger.Error("failed to instantiate gRPC server", zap.Error(err))
-		return
-	}
 
 	if err := server.Run(ctx); err != nil {
 		logger.Error("failed to run gRPC server", zap.Error(err))
