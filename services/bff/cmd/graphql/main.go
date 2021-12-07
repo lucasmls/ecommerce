@@ -65,21 +65,12 @@ func main() {
 
 	tracer := otel.Tracer("bff")
 
-	productsServiceGRPCClient, err := grpc.NewClient(grpc.ClientInput{
+	productsServiceGRPCClient := grpc.MustNewClient(grpc.ClientInput{
 		Address: "localhost:8081",
-		// Address: "products-service.default.svc.cluster.local:8081",
-		Logger: logger,
+		Logger:  logger,
 	})
-	if err != nil {
-		logger.Error("failed to build products service gRPC client", zap.Error(err))
-		return
-	}
 
-	productsServiceConn, err := productsServiceGRPCClient.Connect(ctx)
-	if err != nil {
-		logger.Error("failed to connect into products service gRPC server.", zap.Error(err))
-		return
-	}
+	productsServiceConn := productsServiceGRPCClient.MustConnect(ctx)
 
 	productsService := productsPb.NewProductsServiceClient(productsServiceConn)
 
