@@ -13,6 +13,13 @@ import (
 	productsPb "github.com/lucasmls/ecommerce/services/products/ports/grpc/proto"
 	"github.com/lucasmls/ecommerce/shared/grpc"
 	"go.uber.org/zap"
+
+	"go.opentelemetry.io/otel"
+	jaegerExporter "go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/propagation"
+	tracingSdkResource "go.opentelemetry.io/otel/sdk/resource"
+	tracingSdk "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
 
 const defaultPort = "8080"
@@ -28,10 +35,40 @@ func main() {
 		port = defaultPort
 	}
 
+	jaegerExporter, err := jaegerExporter.New(
+		jaegerExporter.WithCollectorEndpoint(
+			jaegerExporter.WithEndpoint("http://localhost:14268/api/traces"),
+		),
+	)
+	if err != nil {
+		logger.Error("failed to instantiate Jaeger exporter", zap.Error(err))
+		return
+	}
+
+	tracingProvider := tracingSdk.NewTracerProvider(
+		tracingSdk.WithBatcher(jaegerExporter),
+		tracingSdk.WithResource(tracingSdkResource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceNameKey.String("bff"),
+		)),
+	)
+
+	defer func() {
+		_ = tracingProvider.Shutdown(ctx)
+	}()
+
+	otel.SetTracerProvider(tracingProvider)
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	))
+
+	tracer := otel.Tracer("bff")
+
 	productsServiceGRPCClient, err := grpc.NewClient(grpc.ClientInput{
-		// Address: "localhost:8081",
-		Address: "products-service.default.svc.cluster.local:8081",
-		Logger:  logger,
+		Address: "localhost:8081",
+		// Address: "products-service.default.svc.cluster.local:8081",
+		Logger: logger,
 	})
 	if err != nil {
 		logger.Error("failed to build products service gRPC client", zap.Error(err))
@@ -48,6 +85,7 @@ func main() {
 
 	graphQlResolver := &graph.Resolver{
 		Logger:          logger,
+		Tracer:          tracer,
 		ProductsService: productsService,
 	}
 

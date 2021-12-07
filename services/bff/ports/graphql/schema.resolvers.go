@@ -13,6 +13,9 @@ import (
 )
 
 func (m *mutationResolver) RegisterProduct(ctx context.Context, input model.RegisterProductInput) (*model.Product, error) {
+	ctx, span := m.Tracer.Start(ctx, "resolver.RegisterProduct")
+	defer span.End()
+
 	m.Logger.Info("registering a new product", zap.Any("input", input))
 
 	registeredProduct, err := m.ProductsService.Register(ctx, &grpc_protobuf.Product{
@@ -35,6 +38,9 @@ func (m *mutationResolver) RegisterProduct(ctx context.Context, input model.Regi
 }
 
 func (m *mutationResolver) UpdateProduct(ctx context.Context, input model.UpdateProductInput) (*model.Product, error) {
+	ctx, span := m.Tracer.Start(ctx, "resolver.UpdateProduct")
+	defer span.End()
+
 	m.Logger.Info("updating a product", zap.Any("input", input))
 
 	updatedProduct, err := m.ProductsService.Update(ctx, &grpc_protobuf.Product{
@@ -58,6 +64,9 @@ func (m *mutationResolver) UpdateProduct(ctx context.Context, input model.Update
 }
 
 func (q *queryResolver) Products(ctx context.Context) ([]*model.Product, error) {
+	ctx, span := q.Tracer.Start(ctx, "resolver.Products")
+	defer span.End()
+
 	q.Logger.Info("querying products")
 
 	products, err := q.ProductsService.List(ctx, &grpc_protobuf.ListRequest{})
@@ -79,6 +88,9 @@ func (q *queryResolver) Products(ctx context.Context) ([]*model.Product, error) 
 }
 
 func (m *mutationResolver) RemoveProduct(ctx context.Context, input model.RemoveProductInput) (string, error) {
+	ctx, span := m.Tracer.Start(ctx, "resolver.RemoveProduct")
+	defer span.End()
+
 	m.Logger.Info("removing a product", zap.String("id", input.ID))
 
 	deleteReponse, err := m.ProductsService.Delete(ctx, &grpc_protobuf.DeleteRequest{Id: input.ID})

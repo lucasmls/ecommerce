@@ -2,6 +2,7 @@ package graph
 
 import (
 	productsPb "github.com/lucasmls/ecommerce/services/products/ports/grpc/proto"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -11,5 +12,6 @@ import (
 
 type Resolver struct {
 	Logger          *zap.Logger
+	Tracer          trace.Tracer
 	ProductsService productsPb.ProductsServiceClient
 }
