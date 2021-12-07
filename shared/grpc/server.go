@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
 	gGRPC "google.golang.org/grpc"
 )
@@ -34,7 +35,10 @@ func NewServer(in ServerInput) (*Server, error) {
 		return nil, errors.New("missing required dependency: Registrator")
 	}
 
-	grpcServer := gGRPC.NewServer()
+	grpcServer := gGRPC.NewServer(
+		gGRPC.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
+		gGRPC.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
+	)
 
 	return &Server{
 		in:     in,
