@@ -28,7 +28,7 @@ test:
 	@ echo
 	@ go test -cover ./...
 
-gen-proto:
+gen-grpc-proto:
 	@ echo "Generating ./ports/grpc/*.proto into ./ports/grpc/gen/*.pb.go ..."
 	@ protoc \
 		--go_out=. \
@@ -36,6 +36,17 @@ gen-proto:
 		--go_opt=paths=source_relative \
 		--go-grpc_opt=paths=source_relative \
     ports/grpc/proto/*.proto
+
+gen-rmq-proto:
+	@ echo "Generating ./ports/rmq/*.proto into ./ports/rmq/gen/*.pb.go ..."
+	@ protoc \
+		--go_out=. \
+    --go-grpc_out=. \
+		--go_opt=paths=source_relative \
+		--go-grpc_opt=paths=source_relative \
+    ports/rmq/proto/*.proto
+
+gen-proto: gen-grpc-proto gen-rmq-proto
 
 mock:
 	@ echo "Starting building mocks..."

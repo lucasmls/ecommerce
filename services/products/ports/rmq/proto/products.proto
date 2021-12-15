@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+option go_package = "github.com/lucasmls/ecommerce/services/products/grpc_protobuf";
+
+package grpc;
+
+message Product {
+  string id          = 1;
+  string name        = 2;
+  string description = 3;
+  float  price       = 4;
+}
