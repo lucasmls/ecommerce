@@ -4,12 +4,12 @@ services:
   jaeger:
     image: jaegertracing/all-in-one
     ports:
-      - 14268:14268
-      - 16686:16686
+      - "14268:14268"
+      - "16686:16686"
 
   rabbitmq:
     image: rabbitmq:3.9.10-management
     container_name: rabbitmq
     ports:
-      - 5672:5672
-      - 15672:15672
+      - "5672:5672"
+      - "15672:15672"
