@@ -11,6 +11,11 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	ErrInvalidStorageSize = errors.New("invalid-storage-size")
+	ErrProductNotFound    = errors.New("product-not-found")
+)
+
 // ProductsRepositoryInput holds all the dependencies needed to
 // instantiate ProductsRepository
 type ProductsRepositoryInput struct {
@@ -28,7 +33,7 @@ type InMemoryProductsRepository struct {
 // NewInMemoryProductsRepository creates a new InMemoryProductsRepository.
 func NewInMemoryProductsRepository(in ProductsRepositoryInput) (InMemoryProductsRepository, error) {
 	if in.Size == 0 {
-		return InMemoryProductsRepository{}, errors.New("invalid-storage-size")
+		return InMemoryProductsRepository{}, ErrInvalidStorageSize
 	}
 
 	storage := make(map[string]domain.Product, in.Size)
@@ -74,6 +79,11 @@ func (r InMemoryProductsRepository) Update(ctx context.Context, product domain.P
 	_, span := r.in.Tracer.Start(ctx, "repository.Update")
 	defer span.End()
 
+	_, ok := r.storage[product.ID]
+	if !ok {
+		return domain.Product{}, ErrProductNotFound
+	}
+
 	r.storage[product.ID] = product
 	return product, nil
 }
@@ -85,7 +95,7 @@ func (r InMemoryProductsRepository) Delete(ctx context.Context, id string) error
 
 	_, found := r.storage[id]
 	if !found {
-		return errors.New("not-found")
+		return ErrProductNotFound
 	}
 
 	delete(r.storage, id)
@@ -93,13 +103,12 @@ func (r InMemoryProductsRepository) Delete(ctx context.Context, id string) error
 	return nil
 }
 
-// List list all products from memory.
+// List all products from memory.
 func (r InMemoryProductsRepository) List(ctx context.Context, filter domain.ListProductsFilter) ([]domain.Product, error) {
 	_, span := r.in.Tracer.Start(ctx, "repository.List")
 	defer span.End()
 
-	result := []domain.Product{}
-
+	var result []domain.Product
 	for _, v := range r.storage {
 		result = append(result, v)
 	}
