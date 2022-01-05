@@ -51,10 +51,10 @@ func (r *ProductsConsumer) Register(ctx context.Context, req *protoMessages.Prod
 	r.in.Logger.Info("registering a new product", zap.Any("product", req))
 
 	product, err := r.in.App.RegisterProduct(ctx, domain.Product{
-		ID:          req.Id,
+		ID:          int(req.Id),
 		Name:        req.Name,
 		Description: req.Description,
-		Price:       req.Price,
+		Price:       int(req.Price),
 	})
 	if err != nil {
 		r.in.Logger.Error("failed to register a new product", zap.Error(err))

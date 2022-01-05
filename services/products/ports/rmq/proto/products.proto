@@ -5,8 +5,8 @@ option go_package = "github.com/lucasmls/ecommerce/services/products/grpc_protob
 package grpc;
 
 message Product {
-  string id          = 1;
+  int32  id          = 1;
   string name        = 2;
   string description = 3;
-  float  price       = 4;
+  int32  price       = 4;
 }

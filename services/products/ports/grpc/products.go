@@ -34,8 +34,8 @@ func NewProductsResolver(in ProductsResolverInput) (*ProductsResolver, error) {
 	}, nil
 }
 
-// NewProductsResolver creates a new ProductsResolver instance
-// It panics if any error is found
+// MustNewProductsResolver creates a new ProductsResolver instance.
+//It panics if any error is found
 func MustNewProductsResolver(in ProductsResolverInput) *ProductsResolver {
 	app, err := NewProductsResolver(in)
 	if err != nil {
@@ -49,11 +49,14 @@ func (r *ProductsResolver) List(ctx context.Context, req *pb.ListRequest) (*pb.L
 	ctx, span := r.in.Tracer.Start(ctx, "resolver.List")
 	defer span.End()
 
-	r.in.Logger.Info("received a request to list Products", zap.Strings("ids", req.Ids))
+	var filter domain.ListProductsFilter
+	for _, id := range req.Ids {
+		filter.IDs = append(filter.IDs, int(id))
+	}
 
-	products, err := r.in.App.ListProducts(ctx, domain.ListProductsFilter{
-		IDs: req.Ids,
-	})
+	r.in.Logger.Info("received a request to list Products", zap.Any("filter", filter))
+
+	products, err := r.in.App.ListProducts(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -64,10 +67,10 @@ func (r *ProductsResolver) List(ctx context.Context, req *pb.ListRequest) (*pb.L
 
 	for _, product := range products {
 		response.Data = append(response.Data, &pb.Product{
-			Id:          product.ID,
+			Id:          int32(product.ID),
 			Name:        product.Name,
 			Description: product.Description,
-			Price:       product.Price,
+			Price:       int32(product.Price),
 		})
 	}
 
@@ -81,10 +84,10 @@ func (r *ProductsResolver) Register(ctx context.Context, req *pb.Product) (*pb.R
 	r.in.Logger.Info("registering a new product", zap.Any("product", req))
 
 	product, err := r.in.App.RegisterProduct(ctx, domain.Product{
-		ID:          req.Id,
+		ID:          int(req.Id),
 		Name:        req.Name,
 		Description: req.Description,
-		Price:       req.Price,
+		Price:       int(req.Price),
 	})
 	if err != nil {
 		return nil, err
@@ -92,10 +95,10 @@ func (r *ProductsResolver) Register(ctx context.Context, req *pb.Product) (*pb.R
 
 	response := &pb.RegisterResponse{
 		Data: &pb.Product{
-			Id:          product.ID,
+			Id:          int32(product.ID),
 			Name:        product.Name,
 			Description: product.Description,
-			Price:       product.Price,
+			Price:       int32(product.Price),
 		},
 	}
 
@@ -109,10 +112,10 @@ func (r *ProductsResolver) Update(ctx context.Context, req *pb.Product) (*pb.Upd
 	r.in.Logger.Info("updating a product", zap.Any("product", req))
 
 	product, err := r.in.App.UpdateProduct(ctx, domain.Product{
-		ID:          req.Id,
+		ID:          int(req.Id),
 		Name:        req.Name,
 		Description: req.Description,
-		Price:       req.Price,
+		Price:       int(req.Price),
 	})
 	if err != nil {
 		return nil, err
@@ -120,10 +123,10 @@ func (r *ProductsResolver) Update(ctx context.Context, req *pb.Product) (*pb.Upd
 
 	response := &pb.UpdateResponse{
 		Data: &pb.Product{
-			Id:          product.ID,
+			Id:          int32(product.ID),
 			Name:        product.Name,
 			Description: product.Description,
-			Price:       product.Price,
+			Price:       int32(product.Price),
 		},
 	}
 
@@ -134,9 +137,11 @@ func (r *ProductsResolver) Delete(ctx context.Context, req *pb.DeleteRequest) (*
 	ctx, span := r.in.Tracer.Start(ctx, "resolver.Delete")
 	defer span.End()
 
-	r.in.Logger.Info("deleting a product", zap.String("id", req.Id))
+	productId := int(req.Id)
 
-	err := r.in.App.DeleteProduct(ctx, req.Id)
+	r.in.Logger.Info("deleting a product", zap.Int("id", productId))
+
+	err := r.in.App.DeleteProduct(ctx, productId)
 	if err != nil {
 		return nil, err
 	}

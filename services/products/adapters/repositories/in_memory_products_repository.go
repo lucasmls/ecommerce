@@ -3,12 +3,10 @@ package repositories
 import (
 	"context"
 	"errors"
-	"math/rand"
-	"strconv"
-
 	"github.com/lucasmls/ecommerce/services/products/domain"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+	"math/rand"
 )
 
 var (
@@ -27,7 +25,7 @@ type ProductsRepositoryInput struct {
 
 type InMemoryProductsRepository struct {
 	in      ProductsRepositoryInput
-	storage map[string]domain.Product
+	storage map[int]domain.Product
 }
 
 // NewInMemoryProductsRepository creates a new InMemoryProductsRepository.
@@ -36,10 +34,10 @@ func NewInMemoryProductsRepository(in ProductsRepositoryInput) (InMemoryProducts
 		return InMemoryProductsRepository{}, ErrInvalidStorageSize
 	}
 
-	storage := make(map[string]domain.Product, in.Size)
+	storage := make(map[int]domain.Product, in.Size)
 
-	storage["10"] = domain.Product{
-		ID:          "10",
+	storage[10] = domain.Product{
+		ID:          10,
 		Name:        "Macbook Air M1",
 		Description: "Fast!",
 		Price:       6900,
@@ -67,7 +65,7 @@ func (r InMemoryProductsRepository) Create(ctx context.Context, product domain.P
 	_, span := r.in.Tracer.Start(ctx, "repository.Create")
 	defer span.End()
 
-	id := strconv.Itoa(rand.Intn(1000))
+	id := rand.Intn(1000)
 	product.ID = id
 
 	r.storage[id] = product
@@ -89,7 +87,7 @@ func (r InMemoryProductsRepository) Update(ctx context.Context, product domain.P
 }
 
 // Delete deletes a Product from memory.
-func (r InMemoryProductsRepository) Delete(ctx context.Context, id string) error {
+func (r InMemoryProductsRepository) Delete(ctx context.Context, id int) error {
 	_, span := r.in.Tracer.Start(ctx, "repository.Delete")
 	defer span.End()
 

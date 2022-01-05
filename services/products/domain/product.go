@@ -2,8 +2,8 @@ package domain
 
 // Product represents a product in the system.
 type Product struct {
-	ID          string
+	ID          int
 	Name        string
 	Description string
-	Price       float32
+	Price       int
 }

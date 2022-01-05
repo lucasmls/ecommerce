@@ -36,7 +36,7 @@ func (m *MockApplication) EXPECT() *MockApplicationMockRecorder {
 }
 
 // DeleteProduct mocks base method.
-func (m *MockApplication) DeleteProduct(arg0 context.Context, arg1 string) error {
+func (m *MockApplication) DeleteProduct(arg0 context.Context, arg1 int) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteProduct", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -133,7 +133,7 @@ func (mr *MockProductsRepositoryMockRecorder) Create(arg0, arg1 interface{}) *go
 }
 
 // Delete mocks base method.
-func (m *MockProductsRepository) Delete(arg0 context.Context, arg1 string) error {
+func (m *MockProductsRepository) Delete(arg0 context.Context, arg1 int) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", arg0, arg1)
 	ret0, _ := ret[0].(error)

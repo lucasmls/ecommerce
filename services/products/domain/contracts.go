@@ -15,7 +15,7 @@ type Application interface {
 	UpdateProduct(context.Context, Product) (Product, error)
 
 	// DeleteProduct deletes a Product
-	DeleteProduct(context.Context, string) error
+	DeleteProduct(context.Context, int) error
 }
 
 type ProductsRepository interface {
@@ -26,13 +26,13 @@ type ProductsRepository interface {
 	Update(context.Context, Product) (Product, error)
 
 	// Delete deletes a Product from a data storage.
-	Delete(context.Context, string) error
+	Delete(context.Context, int) error
 
-	// List list all Products from a data storage.
+	// List all Products from a data storage.
 	List(context.Context, ListProductsFilter) ([]Product, error)
 }
 
 // ListProductsFilter represents a filter passed to List
 type ListProductsFilter struct {
-	IDs []string
+	IDs []int
 }

@@ -65,9 +65,9 @@ func TestMustNewInMemoryProductsRepository(t *testing.T) {
 						Tracer: tracerM,
 						Size:   10,
 					},
-					storage: map[string]domain.Product{
-						"10": {
-							ID:          "10",
+					storage: map[int]domain.Product{
+						10: {
+							ID:          10,
 							Name:        "Macbook Air M1",
 							Description: "Fast!",
 							Price:       6900,
@@ -138,9 +138,9 @@ func TestNewInMemoryProductsRepository(t *testing.T) {
 						Tracer: tracerM,
 						Size:   10,
 					},
-					storage: map[string]domain.Product{
-						"10": {
-							ID:          "10",
+					storage: map[int]domain.Product{
+						10: {
+							ID:          10,
 							Name:        "Macbook Air M1",
 							Description: "Fast!",
 							Price:       6900,
@@ -173,11 +173,11 @@ func TestInMemoryProductsRepository_Delete(t *testing.T) {
 
 	type fields struct {
 		in      ProductsRepositoryInput
-		storage map[string]domain.Product
+		storage map[int]domain.Product
 	}
 	type args struct {
 		ctx context.Context
-		id  string
+		id  int
 	}
 
 	t.Run("Failure tests", func(t *testing.T) {
@@ -195,11 +195,11 @@ func TestInMemoryProductsRepository_Delete(t *testing.T) {
 						Tracer: tracerM,
 						Size:   1,
 					},
-					storage: map[string]domain.Product{},
+					storage: map[int]domain.Product{},
 				},
 				args: args{
 					ctx: context.Background(),
-					id:  "1",
+					id:  1,
 				},
 				want: ErrProductNotFound,
 			},
@@ -233,9 +233,9 @@ func TestInMemoryProductsRepository_Delete(t *testing.T) {
 						Tracer: tracerM,
 						Size:   2,
 					},
-					storage: map[string]domain.Product{
-						"1": {
-							ID:          "1",
+					storage: map[int]domain.Product{
+						1: {
+							ID:          1,
 							Name:        "Macbook Pro, M1 Max",
 							Description: "Incredible!",
 							Price:       27600,
@@ -244,7 +244,7 @@ func TestInMemoryProductsRepository_Delete(t *testing.T) {
 				},
 				args: args{
 					ctx: context.Background(),
-					id:  "1",
+					id:  1,
 				},
 				want: nil,
 			},
@@ -271,7 +271,7 @@ func TestInMemoryProductsRepository_List(t *testing.T) {
 
 	type fields struct {
 		in      ProductsRepositoryInput
-		storage map[string]domain.Product
+		storage map[int]domain.Product
 	}
 	type args struct {
 		ctx    context.Context
@@ -291,9 +291,9 @@ func TestInMemoryProductsRepository_List(t *testing.T) {
 					Tracer: tracerM,
 					Size:   10,
 				},
-				storage: map[string]domain.Product{
-					"1": {
-						ID:          "1",
+				storage: map[int]domain.Product{
+					1: {
+						ID:          1,
 						Name:        "Macbook Pro M1",
 						Description: "Fast",
 						Price:       8900,
@@ -303,12 +303,12 @@ func TestInMemoryProductsRepository_List(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				filter: domain.ListProductsFilter{
-					IDs: []string{},
+					IDs: []int{},
 				},
 			},
 			want: []domain.Product{
 				{
-					ID:          "1",
+					ID:          1,
 					Name:        "Macbook Pro M1",
 					Description: "Fast",
 					Price:       8900,
@@ -340,7 +340,7 @@ func TestInMemoryProductsRepository_Update(t *testing.T) {
 
 	type fields struct {
 		in      ProductsRepositoryInput
-		storage map[string]domain.Product
+		storage map[int]domain.Product
 	}
 
 	type args struct {
@@ -363,12 +363,12 @@ func TestInMemoryProductsRepository_Update(t *testing.T) {
 						Tracer: tracerM,
 						Size:   1,
 					},
-					storage: map[string]domain.Product{},
+					storage: map[int]domain.Product{},
 				},
 				args: args{
 					ctx: context.Background(),
 					product: domain.Product{
-						ID:          "1",
+						ID:          1,
 						Name:        "Macbook Pro M1",
 						Description: "Fast",
 						Price:       8900,
@@ -406,9 +406,9 @@ func TestInMemoryProductsRepository_Update(t *testing.T) {
 						Tracer: tracerM,
 						Size:   2,
 					},
-					storage: map[string]domain.Product{
-						"1": {
-							ID:          "1",
+					storage: map[int]domain.Product{
+						1: {
+							ID:          1,
 							Name:        "Wrong macbook name",
 							Description: "Slow",
 							Price:       1000,
@@ -418,14 +418,14 @@ func TestInMemoryProductsRepository_Update(t *testing.T) {
 				args: args{
 					ctx: context.Background(),
 					product: domain.Product{
-						ID:          "1",
+						ID:          1,
 						Name:        "Macbook Pro M1",
 						Description: "Fast",
 						Price:       8900,
 					},
 				},
 				want: domain.Product{
-					ID:          "1",
+					ID:          1,
 					Name:        "Macbook Pro M1",
 					Description: "Fast",
 					Price:       8900,
@@ -449,5 +449,4 @@ func TestInMemoryProductsRepository_Update(t *testing.T) {
 			})
 		}
 	})
-
 }

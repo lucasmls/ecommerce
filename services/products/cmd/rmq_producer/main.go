@@ -41,7 +41,7 @@ func main() {
 	}
 
 	newProductMessage := &protoMessages.Product{
-		Id:          "1",
+		Id:          1,
 		Name:        "Macbook Air M1",
 		Description: "Fast!",
 		Price:       6800,

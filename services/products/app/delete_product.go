@@ -6,7 +6,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (a application) DeleteProduct(ctx context.Context, id string) error {
+func (a application) DeleteProduct(ctx context.Context, id int) error {
 	ctx, span := a.in.Tracer.Start(ctx, "app.DeleteProduct")
 	defer span.End()
 
