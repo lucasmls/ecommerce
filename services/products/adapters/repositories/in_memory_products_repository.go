@@ -3,10 +3,11 @@ package repositories
 import (
 	"context"
 	"errors"
+	"math/rand"
+
 	"github.com/lucasmls/ecommerce/services/products/domain"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"math/rand"
 )
 
 var (
@@ -29,7 +30,7 @@ type InMemoryProductsRepository struct {
 }
 
 // NewInMemoryProductsRepository creates a new InMemoryProductsRepository.
-func NewInMemoryProductsRepository(in ProductsRepositoryInput) (InMemoryProductsRepository, error) {
+func NewInMemoryProductsRepository(in ProductsRepositoryInput) (domain.ProductsRepository, error) {
 	if in.Size == 0 {
 		return InMemoryProductsRepository{}, ErrInvalidStorageSize
 	}
@@ -51,13 +52,34 @@ func NewInMemoryProductsRepository(in ProductsRepositoryInput) (InMemoryProducts
 
 // MustNewInMemoryProductsRepository creates a new InMemoryProductsRepository.
 // It panics if any error is found.
-func MustNewInMemoryProductsRepository(in ProductsRepositoryInput) InMemoryProductsRepository {
+func MustNewInMemoryProductsRepository(in ProductsRepositoryInput) domain.ProductsRepository {
 	repo, err := NewInMemoryProductsRepository(in)
 	if err != nil {
 		panic(err)
 	}
 
 	return repo
+}
+
+func NewInMemoryProductsRepository2(
+	logger *zap.Logger,
+	tracer trace.Tracer,
+	size int,
+) (domain.ProductsRepository, error) {
+	if size == 0 {
+		return InMemoryProductsRepository{}, ErrInvalidStorageSize
+	}
+
+	storage := make(map[int]domain.Product, size)
+
+	return InMemoryProductsRepository{
+		in: ProductsRepositoryInput{
+			Logger: logger,
+			Tracer: tracer,
+			Size:   size,
+		},
+		storage: storage,
+	}, nil
 }
 
 // Create creates a new Product in-memory.
