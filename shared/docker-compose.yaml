@@ -20,3 +20,9 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:8.3.6
+    ports:
+      - "3000:3000"
+    user: "104"
