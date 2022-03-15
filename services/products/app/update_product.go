@@ -8,12 +8,12 @@ import (
 )
 
 func (a application) UpdateProduct(ctx context.Context, product domain.Product) (domain.Product, error) {
-	ctx, span := a.in.Tracer.Start(ctx, "app.UpdateProduct")
+	ctx, span := a.Tracer.Start(ctx, "app.UpdateProduct")
 	defer span.End()
 
-	a.in.Logger.Info("updating a product", zap.Any("product", product))
+	a.Logger.Info("updating a product", zap.Any("product", product))
 
-	updatedProduct, err := a.in.ProductsRepository.Update(ctx, product)
+	updatedProduct, err := a.ProductsRepository.Update(ctx, product)
 	if err != nil {
 		return domain.Product{}, err
 	}

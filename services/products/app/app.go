@@ -6,30 +6,35 @@ import (
 	"go.uber.org/zap"
 )
 
-// ApplicationInput holds all the dependencies needed to
-// instantiate the Application
-type ApplicationInput struct {
+// application holds all dependencies the Application needs to work
+type application struct {
 	Logger *zap.Logger
 	Tracer trace.Tracer
 
 	ProductsRepository domain.ProductsRepository
 }
 
-type application struct {
-	in ApplicationInput
-}
-
 // NewApplication creates a new Application instance
-func NewApplication(in ApplicationInput) (application, error) {
+func NewApplication(
+	logger *zap.Logger,
+	tracer trace.Tracer,
+	productsRepository domain.ProductsRepository,
+) (application, error) {
 	return application{
-		in: in,
+		Logger:             logger,
+		Tracer:             tracer,
+		ProductsRepository: productsRepository,
 	}, nil
 }
 
 // MustNewApplication creates a new Application instance
 // It panics if any error is found
-func MustNewApplication(in ApplicationInput) application {
-	app, err := NewApplication(in)
+func MustNewApplication(
+	logger *zap.Logger,
+	tracer trace.Tracer,
+	productsRepository domain.ProductsRepository,
+) application {
+	app, err := NewApplication(logger, tracer, productsRepository)
 	if err != nil {
 		panic(err)
 	}

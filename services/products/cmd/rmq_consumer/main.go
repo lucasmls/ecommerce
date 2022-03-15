@@ -67,11 +67,7 @@ func main() {
 
 	productsInMemoryRepository := repositories.MustNewInMemoryProductsRepository(logger, tracer, 10)
 
-	application := app.MustNewApplication(app.ApplicationInput{
-		Logger:             logger,
-		Tracer:             tracer,
-		ProductsRepository: productsInMemoryRepository,
-	})
+	application := app.MustNewApplication(logger, tracer, productsInMemoryRepository)
 
 	rmqProductsConsumer := rmqPort.MustNewProductsConsumer(rmqPort.ProductsConsumerInput{
 		Logger: logger,

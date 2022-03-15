@@ -8,12 +8,12 @@ import (
 )
 
 func (a application) ListProducts(ctx context.Context, filter domain.ListProductsFilter) ([]domain.Product, error) {
-	ctx, span := a.in.Tracer.Start(ctx, "app.ListProducts")
+	ctx, span := a.Tracer.Start(ctx, "app.ListProducts")
 	defer span.End()
 
-	a.in.Logger.Info("listing products", zap.Any("filter", filter))
+	a.Logger.Info("listing products", zap.Any("filter", filter))
 
-	products, err := a.in.ProductsRepository.List(ctx, filter)
+	products, err := a.ProductsRepository.List(ctx, filter)
 	if err != nil {
 		return nil, err
 	}

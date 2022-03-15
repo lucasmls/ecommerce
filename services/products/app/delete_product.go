@@ -7,12 +7,12 @@ import (
 )
 
 func (a application) DeleteProduct(ctx context.Context, id int) error {
-	ctx, span := a.in.Tracer.Start(ctx, "app.DeleteProduct")
+	ctx, span := a.Tracer.Start(ctx, "app.DeleteProduct")
 	defer span.End()
 
-	a.in.Logger.Info("deleting a product", zap.Any("id", id))
+	a.Logger.Info("deleting a product", zap.Any("id", id))
 
-	err := a.in.ProductsRepository.Delete(ctx, id)
+	err := a.ProductsRepository.Delete(ctx, id)
 	if err != nil {
 		return err
 	}

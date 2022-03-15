@@ -13,13 +13,20 @@ import (
 )
 
 func TestListProducts(t *testing.T) {
+	loggerM := zap.NewNop()
+	tracerM := trace.NewNoopTracerProvider().Tracer("")
+
 	tt := []struct {
 		name                string
+		logger              *zap.Logger
+		tracer              trace.Tracer
 		expectedResult      error
 		productsRepositoryM func(context.Context, *gomock.Controller) domain.ProductsRepository
 	}{
 		{
 			name:           "Fails when repository.List returns a error",
+			logger:         loggerM,
+			tracer:         tracerM,
 			expectedResult: errors.New("failed to list products from the datastore"),
 			productsRepositoryM: func(c context.Context, g *gomock.Controller) domain.ProductsRepository {
 				productsRepoM := mocks.NewMockProductsRepository(g)
@@ -37,15 +44,8 @@ func TestListProducts(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
 			ctrl := gomock.NewController(t)
-			logger, _ := zap.NewDevelopment()
 
-			a := application{
-				in: ApplicationInput{
-					Logger:             logger,
-					ProductsRepository: tc.productsRepositoryM(ctx, ctrl),
-					Tracer:             trace.NewNoopTracerProvider().Tracer(""),
-				},
-			}
+			a := MustNewApplication(tc.logger, tc.tracer, tc.productsRepositoryM(ctx, ctrl))
 
 			_, err := a.ListProducts(ctx, domain.ListProductsFilter{})
 			if err.Error() != tc.expectedResult.Error() {

@@ -65,11 +65,7 @@ func main() {
 	// 	return
 	// }
 
-	application := app.MustNewApplication(app.ApplicationInput{
-		Logger:             logger,
-		Tracer:             tracer,
-		ProductsRepository: productsInMemoryRepository,
-	})
+	application := app.MustNewApplication(logger, tracer, productsInMemoryRepository)
 
 	productsResolver := resolvers.MustNewProductsResolver(resolvers.ProductsResolverInput{
 		Logger: logger,
