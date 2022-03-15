@@ -11,49 +11,45 @@ import (
 )
 
 var (
-	ErrInvalidStorageSize = errors.New("invalid-storage-size")
-	ErrProductNotFound    = errors.New("product-not-found")
+	ErrInvalidStorageSize  = errors.New("invalid-storage-size")
+	ErrStorageLimitReached = errors.New("storage-limit-reached")
+	ErrProductNotFound     = errors.New("product-not-found")
 )
 
-// ProductsRepositoryInput holds all the dependencies needed to
-// instantiate ProductsRepository
-type ProductsRepositoryInput struct {
-	Logger *zap.Logger
-	Tracer trace.Tracer
-
-	Size int
-}
-
 type InMemoryProductsRepository struct {
-	in      ProductsRepositoryInput
+	Logger      *zap.Logger
+	Tracer      trace.Tracer
+	StorageSize int
+
 	storage map[int]domain.Product
 }
 
 // NewInMemoryProductsRepository creates a new InMemoryProductsRepository.
-func NewInMemoryProductsRepository(in ProductsRepositoryInput) (domain.ProductsRepository, error) {
-	if in.Size == 0 {
+func NewInMemoryProductsRepository(
+	logger *zap.Logger,
+	tracer trace.Tracer,
+	storageSize int,
+) (domain.ProductsRepository, error) {
+	if storageSize == 0 {
 		return InMemoryProductsRepository{}, ErrInvalidStorageSize
 	}
 
-	storage := make(map[int]domain.Product, in.Size)
-
-	storage[10] = domain.Product{
-		ID:          10,
-		Name:        "Macbook Air M1",
-		Description: "Fast!",
-		Price:       6900,
-	}
-
 	return InMemoryProductsRepository{
-		in:      in,
-		storage: storage,
+		Logger:      logger,
+		Tracer:      tracer,
+		StorageSize: storageSize,
+		storage:     make(map[int]domain.Product, storageSize),
 	}, nil
 }
 
 // MustNewInMemoryProductsRepository creates a new InMemoryProductsRepository.
 // It panics if any error is found.
-func MustNewInMemoryProductsRepository(in ProductsRepositoryInput) domain.ProductsRepository {
-	repo, err := NewInMemoryProductsRepository(in)
+func MustNewInMemoryProductsRepository(
+	logger *zap.Logger,
+	tracer trace.Tracer,
+	storageSize int,
+) domain.ProductsRepository {
+	repo, err := NewInMemoryProductsRepository(logger, tracer, storageSize)
 	if err != nil {
 		panic(err)
 	}
@@ -61,46 +57,29 @@ func MustNewInMemoryProductsRepository(in ProductsRepositoryInput) domain.Produc
 	return repo
 }
 
-func NewInMemoryProductsRepository2(
-	logger *zap.Logger,
-	tracer trace.Tracer,
-	size int,
-) (domain.ProductsRepository, error) {
-	if size == 0 {
-		return InMemoryProductsRepository{}, ErrInvalidStorageSize
-	}
-
-	storage := make(map[int]domain.Product, size)
-
-	return InMemoryProductsRepository{
-		in: ProductsRepositoryInput{
-			Logger: logger,
-			Tracer: tracer,
-			Size:   size,
-		},
-		storage: storage,
-	}, nil
-}
-
 // Create creates a new Product in-memory.
 func (r InMemoryProductsRepository) Create(ctx context.Context, product domain.Product) (domain.Product, error) {
-	_, span := r.in.Tracer.Start(ctx, "repository.Create")
+	_, span := r.Tracer.Start(ctx, "repository.Create")
 	defer span.End()
 
-	id := rand.Intn(1000)
-	product.ID = id
+	if len(r.storage) == r.StorageSize {
+		return domain.Product{}, ErrStorageLimitReached
+	}
 
-	r.storage[id] = product
+	if product.ID == 0 {
+		product.ID = rand.Intn(1000)
+	}
+
+	r.storage[product.ID] = product
 	return product, nil
 }
 
 // Update updates a product in-memory.
 func (r InMemoryProductsRepository) Update(ctx context.Context, product domain.Product) (domain.Product, error) {
-	_, span := r.in.Tracer.Start(ctx, "repository.Update")
+	_, span := r.Tracer.Start(ctx, "repository.Update")
 	defer span.End()
 
-	_, ok := r.storage[product.ID]
-	if !ok {
+	if _, ok := r.storage[product.ID]; !ok {
 		return domain.Product{}, ErrProductNotFound
 	}
 
@@ -110,7 +89,7 @@ func (r InMemoryProductsRepository) Update(ctx context.Context, product domain.P
 
 // Delete deletes a Product from memory.
 func (r InMemoryProductsRepository) Delete(ctx context.Context, id int) error {
-	_, span := r.in.Tracer.Start(ctx, "repository.Delete")
+	_, span := r.Tracer.Start(ctx, "repository.Delete")
 	defer span.End()
 
 	_, found := r.storage[id]
@@ -125,12 +104,24 @@ func (r InMemoryProductsRepository) Delete(ctx context.Context, id int) error {
 
 // List all products from memory.
 func (r InMemoryProductsRepository) List(ctx context.Context, filter domain.ListProductsFilter) ([]domain.Product, error) {
-	_, span := r.in.Tracer.Start(ctx, "repository.List")
+	_, span := r.Tracer.Start(ctx, "repository.List")
 	defer span.End()
 
+	filterIndex := map[int]bool{}
+	for _, id := range filter.IDs {
+		filterIndex[id] = true
+	}
+
 	var result []domain.Product
-	for _, v := range r.storage {
-		result = append(result, v)
+	for _, product := range r.storage {
+		if len(filter.IDs) == 0 {
+			result = append(result, product)
+			continue
+		}
+
+		if _, ok := filterIndex[product.ID]; ok {
+			result = append(result, product)
+		}
 	}
 
 	return result, nil

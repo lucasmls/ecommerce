@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"math/rand"
 	"reflect"
 	"testing"
 
@@ -10,24 +11,92 @@ import (
 	"go.uber.org/zap"
 )
 
-func TestMustNewInMemoryProductsRepository(t *testing.T) {
-	loggerM, _ := zap.NewDevelopment()
+func TestNewInMemoryProductsRepository(t *testing.T) {
+	loggerM := zap.NewNop()
 	tracerM := trace.NewNoopTracerProvider().Tracer("")
 
 	t.Run("Failure tests", func(t *testing.T) {
 		tt := []struct {
-			name  string
-			input ProductsRepositoryInput
-			want  error
+			name           string
+			logger         *zap.Logger
+			tracer         trace.Tracer
+			storageSize    int
+			expectedResult error
 		}{
 			{
-				name: "Should not be able to instantiate ProductsRepository with no storage capacity",
-				input: ProductsRepositoryInput{
-					Logger: loggerM,
-					Tracer: tracerM,
-					Size:   0,
+				name:           "Should not be able to instantiate ProductsRepository with no storage capacity",
+				logger:         loggerM,
+				tracer:         tracerM,
+				storageSize:    0,
+				expectedResult: ErrInvalidStorageSize,
+			},
+		}
+
+		for _, tc := range tt {
+			t.Run(tc.name, func(t *testing.T) {
+				_, err := NewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
+				if !reflect.DeepEqual(err, tc.expectedResult) {
+					t.Errorf("NewInMemoryProductsRepository() got = %v, want %v", err, tc.expectedResult)
+				}
+			})
+		}
+	})
+
+	t.Run("Successful tests", func(t *testing.T) {
+		tt := []struct {
+			name           string
+			logger         *zap.Logger
+			tracer         trace.Tracer
+			storageSize    int
+			expectedResult InMemoryProductsRepository
+		}{
+			{
+				name:        "Should construct ProductsRepository with correct storage size",
+				logger:      loggerM,
+				tracer:      tracerM,
+				storageSize: 10,
+				expectedResult: InMemoryProductsRepository{
+					Logger:      loggerM,
+					Tracer:      tracerM,
+					StorageSize: 10,
+					storage:     map[int]domain.Product{},
 				},
-				want: ErrInvalidStorageSize,
+			},
+		}
+
+		for _, tc := range tt {
+			t.Run(tc.name, func(t *testing.T) {
+				got, err := NewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
+				if err != nil {
+					t.Errorf("NewInMemoryProductsRepository should not have failed. Received: %v", err)
+				}
+
+				if !reflect.DeepEqual(got, tc.expectedResult) {
+					t.Errorf("NewInMemoryProductsRepository() got = %v, want %v", got, tc.expectedResult)
+				}
+			})
+		}
+	})
+}
+
+func TestMustNewInMemoryProductsRepository(t *testing.T) {
+	loggerM := zap.NewNop()
+	tracerM := trace.NewNoopTracerProvider().Tracer("")
+
+	t.Run("Failure tests", func(t *testing.T) {
+		tt := []struct {
+			name           string
+			logger         *zap.Logger
+			tracer         trace.Tracer
+			storageSize    int
+			expectedResult error
+		}{
+			{
+				name:           "Should not be able to instantiate ProductsRepository with no storage capacity",
+				logger:         loggerM,
+				tracer:         tracerM,
+				storageSize:    0,
+				expectedResult: ErrInvalidStorageSize,
 			},
 		}
 
@@ -36,50 +105,41 @@ func TestMustNewInMemoryProductsRepository(t *testing.T) {
 				defer func() {
 					err := recover()
 
-					if !reflect.DeepEqual(err, tc.want) {
-						t.Errorf("MustNewInMemoryProductsRepository() got = %v, want %v", err, tc.want)
+					if !reflect.DeepEqual(err, tc.expectedResult) {
+						t.Errorf("MustNewInMemoryProductsRepository() got = %v, want %v", err, tc.expectedResult)
 					}
 				}()
 
-				MustNewInMemoryProductsRepository(tc.input)
+				MustNewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
 			})
 		}
 	})
 
 	t.Run("Successful tests", func(t *testing.T) {
 		tt := []struct {
-			name  string
-			input ProductsRepositoryInput
-			want  InMemoryProductsRepository
+			name        string
+			logger      *zap.Logger
+			tracer      trace.Tracer
+			storageSize int
+			want        InMemoryProductsRepository
 		}{
 			{
-				name: "Should construct ProductsRepository with correct storage size",
-				input: ProductsRepositoryInput{
-					Logger: loggerM,
-					Tracer: tracerM,
-					Size:   10,
-				},
+				name:        "Should construct ProductsRepository with correct storage size",
+				logger:      loggerM,
+				tracer:      tracerM,
+				storageSize: 10,
 				want: InMemoryProductsRepository{
-					in: ProductsRepositoryInput{
-						Logger: loggerM,
-						Tracer: tracerM,
-						Size:   10,
-					},
-					storage: map[int]domain.Product{
-						10: {
-							ID:          10,
-							Name:        "Macbook Air M1",
-							Description: "Fast!",
-							Price:       6900,
-						},
-					},
+					Logger:      loggerM,
+					Tracer:      tracerM,
+					StorageSize: 10,
+					storage:     map[int]domain.Product{},
 				},
 			},
 		}
 
 		for _, tc := range tt {
 			t.Run(tc.name, func(t *testing.T) {
-				got := MustNewInMemoryProductsRepository(tc.input)
+				got := MustNewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
 				if !reflect.DeepEqual(got, tc.want) {
 					t.Errorf("NewInMemoryProductsRepository() got = %v, want %v", got, tc.want)
 				}
@@ -88,32 +148,50 @@ func TestMustNewInMemoryProductsRepository(t *testing.T) {
 	})
 }
 
-func TestNewInMemoryProductsRepository(t *testing.T) {
-	loggerM, _ := zap.NewDevelopment()
+func TestInMemoryProductsRepository_Create(t *testing.T) {
+	rand.Seed(1) // Used to have some control over pseudo-random Product Id generation
+
+	loggerM := zap.NewNop()
 	tracerM := trace.NewNoopTracerProvider().Tracer("")
 
 	t.Run("Failure tests", func(t *testing.T) {
 		tt := []struct {
-			name  string
-			input ProductsRepositoryInput
-			want  error
+			name           string
+			storageSize    int
+			logger         *zap.Logger
+			tracer         trace.Tracer
+			ctx            context.Context
+			product        domain.Product
+			expectedResult error
 		}{
 			{
-				name: "Should not be able to instantiate ProductsRepository with no storage capacity",
-				input: ProductsRepositoryInput{
-					Logger: loggerM,
-					Tracer: tracerM,
-					Size:   0,
+				name:        "Should not store a Product when the storage capacity is full",
+				logger:      loggerM,
+				tracer:      tracerM,
+				storageSize: 1,
+				ctx:         context.Background(),
+				product: domain.Product{
+					ID:          1,
+					Name:        "Macbook Air M1",
+					Description: "Fast!",
+					Price:       7000,
 				},
-				want: ErrInvalidStorageSize,
+				expectedResult: ErrStorageLimitReached,
 			},
 		}
-
 		for _, tc := range tt {
 			t.Run(tc.name, func(t *testing.T) {
-				_, err := NewInMemoryProductsRepository(tc.input)
-				if !reflect.DeepEqual(err, tc.want) {
-					t.Errorf("NewInMemoryProductsRepository() got = %v, want %v", err, tc.want)
+				productsRepo := MustNewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
+				productsRepo.Create(tc.ctx, domain.Product{
+					ID:          1,
+					Name:        "Iphone 12",
+					Description: "Cool",
+					Price:       4500,
+				})
+
+				_, err := productsRepo.Create(tc.ctx, tc.product)
+				if !reflect.DeepEqual(err, tc.expectedResult) {
+					t.Errorf("Create() got = %v, want %v", err, tc.expectedResult)
 				}
 			})
 		}
@@ -121,144 +199,244 @@ func TestNewInMemoryProductsRepository(t *testing.T) {
 
 	t.Run("Successful tests", func(t *testing.T) {
 		tt := []struct {
-			name  string
-			input ProductsRepositoryInput
-			want  InMemoryProductsRepository
+			name           string
+			storageSize    int
+			logger         *zap.Logger
+			tracer         trace.Tracer
+			ctx            context.Context
+			product        domain.Product
+			expectedResult domain.Product
 		}{
 			{
-				name: "Should construct ProductsRepository with correct storage size",
-				input: ProductsRepositoryInput{
-					Logger: loggerM,
-					Tracer: tracerM,
-					Size:   10,
+				name:        "Should store the given Product",
+				logger:      loggerM,
+				tracer:      tracerM,
+				storageSize: 2,
+				ctx:         context.Background(),
+				product: domain.Product{
+					ID:          1,
+					Name:        "Macbook Air M1",
+					Description: "Fast!",
+					Price:       7000,
 				},
-				want: InMemoryProductsRepository{
-					in: ProductsRepositoryInput{
-						Logger: loggerM,
-						Tracer: tracerM,
-						Size:   10,
-					},
-					storage: map[int]domain.Product{
-						10: {
-							ID:          10,
-							Name:        "Macbook Air M1",
-							Description: "Fast!",
-							Price:       6900,
-						},
-					},
+				expectedResult: domain.Product{
+					ID:          1,
+					Name:        "Macbook Air M1",
+					Description: "Fast!",
+					Price:       7000,
+				},
+			},
+			{
+				name:        "Should store the given Product with a pseudo random id",
+				logger:      loggerM,
+				tracer:      tracerM,
+				storageSize: 2,
+				ctx:         context.Background(),
+				product: domain.Product{
+					Name:        "Macbook Air M1",
+					Description: "Fast!",
+					Price:       7000,
+				},
+				expectedResult: domain.Product{
+					ID:          81,
+					Name:        "Macbook Air M1",
+					Description: "Fast!",
+					Price:       7000,
 				},
 			},
 		}
-
 		for _, tc := range tt {
 			t.Run(tc.name, func(t *testing.T) {
-				got, err := NewInMemoryProductsRepository(tc.input)
+				productsRepo := MustNewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
+				got, err := productsRepo.Create(tc.ctx, tc.product)
 				if err != nil {
-					t.Errorf("NewInMemoryProductsRepository should not have failed. Received: %v", err)
+					t.Errorf("Create() should not have failed. Received: %v", err)
 				}
 
-				if !reflect.DeepEqual(got, tc.want) {
-					t.Errorf("NewInMemoryProductsRepository() got = %v, want %v", got, tc.want)
+				if !reflect.DeepEqual(got, tc.expectedResult) {
+					t.Errorf("Create() got = %v, want %v", got, tc.expectedResult)
 				}
 			})
 		}
 	})
 }
 
-func TestInMemoryProductsRepository_Create(t *testing.T) {}
+func TestInMemoryProductsRepository_Update(t *testing.T) {
+	loggerM, _ := zap.NewDevelopment()
+	tracerM := trace.NewNoopTracerProvider().Tracer("")
+
+	t.Run("Failure tests", func(t *testing.T) {
+		tests := []struct {
+			name           string
+			storageSize    int
+			logger         *zap.Logger
+			tracer         trace.Tracer
+			ctx            context.Context
+			product        domain.Product
+			expectedResult error
+		}{
+			{
+				name:        "Should return not found error in case the specified product isn't stored",
+				storageSize: 10,
+				logger:      loggerM,
+				tracer:      tracerM,
+				ctx:         context.Background(),
+				product: domain.Product{
+					ID:          1,
+					Name:        "Macbook Air M1",
+					Description: "Fast!",
+					Price:       7000,
+				},
+				expectedResult: ErrProductNotFound,
+			},
+		}
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				productsRepo := MustNewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
+
+				_, err := productsRepo.Update(tc.ctx, tc.product)
+				if !reflect.DeepEqual(err, tc.expectedResult) {
+					t.Errorf("Create() got = %v, want %v", err, tc.expectedResult)
+				}
+			})
+		}
+	})
+
+	t.Run("Successful test", func(t *testing.T) {
+		tests := []struct {
+			name           string
+			storageSize    int
+			logger         *zap.Logger
+			tracer         trace.Tracer
+			ctx            context.Context
+			product        domain.Product
+			expectedResult domain.Product
+			beforeEach     func(ctx context.Context, productsRepo domain.ProductsRepository)
+		}{
+			{
+				name:        "Should update the provided Product",
+				storageSize: 10,
+				logger:      loggerM,
+				tracer:      tracerM,
+				ctx:         context.Background(),
+				product: domain.Product{
+					ID:          1,
+					Name:        "Macbook Air M1",
+					Description: "Fast!",
+					Price:       7000,
+				},
+				expectedResult: domain.Product{
+					ID:          1,
+					Name:        "Macbook Air M1",
+					Description: "Fast!",
+					Price:       7000,
+				},
+				beforeEach: func(ctx context.Context, productsRepo domain.ProductsRepository) {
+					productsRepo.Create(ctx, domain.Product{
+						ID:          1,
+						Name:        "Iphone 12",
+						Description: "Cool",
+						Price:       4500,
+					})
+				},
+			},
+		}
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				productsRepo := MustNewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
+
+				if tc.beforeEach != nil {
+					tc.beforeEach(tc.ctx, productsRepo)
+				}
+
+				got, err := productsRepo.Update(tc.ctx, tc.product)
+				if err != nil {
+					t.Errorf("\nUpdate() should not have failed. \nReceived: %v", err)
+				}
+
+				if !reflect.DeepEqual(got, tc.expectedResult) {
+					t.Errorf("Update() got = %v, want %v", got, tc.expectedResult)
+				}
+			})
+		}
+	})
+}
 
 func TestInMemoryProductsRepository_Delete(t *testing.T) {
-	loggerM, _ := zap.NewDevelopment()
+	loggerM := zap.NewNop()
 	tracerM := trace.NewNoopTracerProvider().Tracer("")
 
-	type fields struct {
-		in      ProductsRepositoryInput
-		storage map[int]domain.Product
-	}
-	type args struct {
-		ctx context.Context
-		id  int
-	}
-
 	t.Run("Failure tests", func(t *testing.T) {
-		tests := []struct {
-			name   string
-			fields fields
-			args   args
-			want   error
+		tt := []struct {
+			name           string
+			logger         *zap.Logger
+			tracer         trace.Tracer
+			storageSize    int
+			ctx            context.Context
+			productId      int
+			expectedResult error
 		}{
 			{
-				name: "Should return a not found error in case the specified product isn't stored",
-				fields: fields{
-					in: ProductsRepositoryInput{
-						Logger: loggerM,
-						Tracer: tracerM,
-						Size:   1,
-					},
-					storage: map[int]domain.Product{},
-				},
-				args: args{
-					ctx: context.Background(),
-					id:  1,
-				},
-				want: ErrProductNotFound,
+				name:           "Should return not found error in case the specified product isn't stored",
+				logger:         loggerM,
+				tracer:         tracerM,
+				storageSize:    1,
+				ctx:            context.Background(),
+				productId:      1,
+				expectedResult: ErrProductNotFound,
 			},
 		}
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				r := InMemoryProductsRepository{
-					in:      tt.fields.in,
-					storage: tt.fields.storage,
-				}
-				err := r.Delete(tt.args.ctx, tt.args.id)
-				if !reflect.DeepEqual(err, tt.want) {
-					t.Errorf("Delete() got = %v, want %v", err, tt.want)
+		for _, tc := range tt {
+			t.Run(tc.name, func(t *testing.T) {
+				productsRepo := MustNewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
+				err := productsRepo.Delete(tc.ctx, tc.productId)
+				if !reflect.DeepEqual(err, tc.expectedResult) {
+					t.Errorf("Delete() got = %v, want %v", err, tc.expectedResult)
 				}
 			})
 		}
 	})
 
 	t.Run("Successful tests", func(t *testing.T) {
-		tests := []struct {
-			name   string
-			fields fields
-			args   args
-			want   error
+		tt := []struct {
+			name           string
+			logger         *zap.Logger
+			tracer         trace.Tracer
+			storageSize    int
+			ctx            context.Context
+			productId      int
+			expectedResult error
+			beforeEach     func(ctx context.Context, productsRepo domain.ProductsRepository, productId int)
 		}{
 			{
-				name: "Should remove the specified Product",
-				fields: fields{
-					in: ProductsRepositoryInput{
-						Logger: loggerM,
-						Tracer: tracerM,
-						Size:   2,
-					},
-					storage: map[int]domain.Product{
-						1: {
-							ID:          1,
-							Name:        "Macbook Pro, M1 Max",
-							Description: "Incredible!",
-							Price:       27600,
-						},
-					},
+				name:           "Should remove the specified Product",
+				logger:         loggerM,
+				tracer:         tracerM,
+				storageSize:    2,
+				ctx:            context.Background(),
+				productId:      1,
+				expectedResult: nil,
+				beforeEach: func(ctx context.Context, productsRepo domain.ProductsRepository, productId int) {
+					productsRepo.Create(ctx, domain.Product{
+						ID:          productId,
+						Name:        "Macbook Air M1",
+						Description: "Fast!",
+						Price:       7000,
+					})
 				},
-				args: args{
-					ctx: context.Background(),
-					id:  1,
-				},
-				want: nil,
 			},
 		}
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				r := InMemoryProductsRepository{
-					in:      tt.fields.in,
-					storage: tt.fields.storage,
+		for _, tc := range tt {
+			t.Run(tc.name, func(t *testing.T) {
+				productsRepo := MustNewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
+
+				if tc.beforeEach != nil {
+					tc.beforeEach(tc.ctx, productsRepo, tc.productId)
 				}
 
-				err := r.Delete(tt.args.ctx, tt.args.id)
-				if !reflect.DeepEqual(err, tt.want) {
-					t.Errorf("Delete() got = %v, want %v", err, tt.want)
+				err := productsRepo.Delete(tc.ctx, tc.productId)
+				if !reflect.DeepEqual(err, tc.expectedResult) {
+					t.Errorf("Delete() got = %v, want %v", err, tc.expectedResult)
 				}
 			})
 		}
@@ -269,182 +447,106 @@ func TestInMemoryProductsRepository_List(t *testing.T) {
 	loggerM, _ := zap.NewDevelopment()
 	tracerM := trace.NewNoopTracerProvider().Tracer("")
 
-	type fields struct {
-		in      ProductsRepositoryInput
-		storage map[int]domain.Product
+	seedProducts := func(ctx context.Context, productsRepo domain.ProductsRepository) {
+		productsRepo.Create(ctx, domain.Product{
+			ID:          1,
+			Name:        "Iphone 13",
+			Description: "Cool",
+			Price:       4500,
+		})
+		productsRepo.Create(ctx, domain.Product{
+			ID:          2,
+			Name:        "Macbook Pro M1 Max",
+			Description: "Fast!",
+			Price:       16500,
+		})
+		productsRepo.Create(ctx, domain.Product{
+			ID:          3,
+			Name:        "Macbook Air M1",
+			Description: "Nice!",
+			Price:       6900,
+		})
 	}
-	type args struct {
-		ctx    context.Context
-		filter domain.ListProductsFilter
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   []domain.Product
-	}{
-		{
-			name: "Should list all products that were stored",
-			fields: fields{
-				in: ProductsRepositoryInput{
-					Logger: loggerM,
-					Tracer: tracerM,
-					Size:   10,
-				},
-				storage: map[int]domain.Product{
-					1: {
-						ID:          1,
-						Name:        "Macbook Pro M1",
-						Description: "Fast",
-						Price:       8900,
-					},
-				},
-			},
-			args: args{
-				ctx: context.Background(),
+
+	t.Run("Successful tests", func(t *testing.T) {
+		tt := []struct {
+			name           string
+			storageSize    int
+			logger         *zap.Logger
+			tracer         trace.Tracer
+			ctx            context.Context
+			filter         domain.ListProductsFilter
+			expectedResult []domain.Product
+			beforeEach     func(ctx context.Context, productsRepo domain.ProductsRepository)
+		}{
+			{
+				name:        "Should list all products that were stored",
+				logger:      loggerM,
+				tracer:      tracerM,
+				storageSize: 10,
+				ctx:         context.Background(),
 				filter: domain.ListProductsFilter{
 					IDs: []int{},
 				},
-			},
-			want: []domain.Product{
-				{
-					ID:          1,
-					Name:        "Macbook Pro M1",
-					Description: "Fast",
-					Price:       8900,
-				},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := InMemoryProductsRepository{
-				in:      tt.fields.in,
-				storage: tt.fields.storage,
-			}
-			got, err := r.List(tt.args.ctx, tt.args.filter)
-			if err != nil {
-				t.Errorf("List() should not have failed. Received: %v", err)
-			}
-
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("List() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestInMemoryProductsRepository_Update(t *testing.T) {
-	loggerM, _ := zap.NewDevelopment()
-	tracerM := trace.NewNoopTracerProvider().Tracer("")
-
-	type fields struct {
-		in      ProductsRepositoryInput
-		storage map[int]domain.Product
-	}
-
-	type args struct {
-		ctx     context.Context
-		product domain.Product
-	}
-
-	t.Run("Failure test", func(t *testing.T) {
-		tests := []struct {
-			name   string
-			fields fields
-			args   args
-			want   error
-		}{
-			{
-				name: "Should return a not found error in case the specified product isn't stored",
-				fields: fields{
-					in: ProductsRepositoryInput{
-						Logger: loggerM,
-						Tracer: tracerM,
-						Size:   1,
-					},
-					storage: map[int]domain.Product{},
-				},
-				args: args{
-					ctx: context.Background(),
-					product: domain.Product{
+				expectedResult: []domain.Product{
+					{
 						ID:          1,
-						Name:        "Macbook Pro M1",
-						Description: "Fast",
-						Price:       8900,
+						Name:        "Iphone 13",
+						Description: "Cool",
+						Price:       4500,
+					},
+					{
+						ID:          2,
+						Name:        "Macbook Pro M1 Max",
+						Description: "Fast!",
+						Price:       16500,
+					},
+					{
+						ID:          3,
+						Name:        "Macbook Air M1",
+						Description: "Nice!",
+						Price:       6900,
 					},
 				},
-				want: ErrProductNotFound,
+				beforeEach: seedProducts,
 			},
-		}
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				r := InMemoryProductsRepository{
-					in:      tt.fields.in,
-					storage: tt.fields.storage,
-				}
-				_, err := r.Update(tt.args.ctx, tt.args.product)
-				if !reflect.DeepEqual(err, tt.want) {
-					t.Errorf("Delete() got = %v, want %v", err, tt.want)
-				}
-			})
-		}
-	})
-
-	t.Run("Successful test", func(t *testing.T) {
-		tests := []struct {
-			name   string
-			fields fields
-			args   args
-			want   domain.Product
-		}{
 			{
-				name: "Should update the specified Product correctly",
-				fields: fields{
-					in: ProductsRepositoryInput{
-						Logger: loggerM,
-						Tracer: tracerM,
-						Size:   2,
-					},
-					storage: map[int]domain.Product{
-						1: {
-							ID:          1,
-							Name:        "Wrong macbook name",
-							Description: "Slow",
-							Price:       1000,
-						},
+				name:        "Should list only the products that match the provided filter",
+				logger:      loggerM,
+				tracer:      tracerM,
+				storageSize: 10,
+				ctx:         context.Background(),
+				filter: domain.ListProductsFilter{
+					IDs: []int{
+						1,
 					},
 				},
-				args: args{
-					ctx: context.Background(),
-					product: domain.Product{
+				expectedResult: []domain.Product{
+					{
 						ID:          1,
-						Name:        "Macbook Pro M1",
-						Description: "Fast",
-						Price:       8900,
+						Name:        "Iphone 13",
+						Description: "Cool",
+						Price:       4500,
 					},
 				},
-				want: domain.Product{
-					ID:          1,
-					Name:        "Macbook Pro M1",
-					Description: "Fast",
-					Price:       8900,
-				},
+				beforeEach: seedProducts,
 			},
 		}
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				r := InMemoryProductsRepository{
-					in:      tt.fields.in,
-					storage: tt.fields.storage,
+		for _, tc := range tt {
+			t.Run(tc.name, func(t *testing.T) {
+				productsRepo := MustNewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
+
+				if tc.beforeEach != nil {
+					tc.beforeEach(tc.ctx, productsRepo)
 				}
-				got, err := r.Update(tt.args.ctx, tt.args.product)
+
+				got, err := productsRepo.List(tc.ctx, tc.filter)
 				if err != nil {
-					t.Errorf("Update() should not have failed. Received: %v", err)
+					t.Errorf("List() should not have failed. Received: %v", err)
 				}
 
-				if !reflect.DeepEqual(got, tt.want) {
-					t.Errorf("Update() got = %v, want %v", got, tt.want)
+				if !reflect.DeepEqual(got, tc.expectedResult) {
+					t.Errorf("List() got = %v, want %v", got, tc.expectedResult)
 				}
 			})
 		}
