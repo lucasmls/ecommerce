@@ -6,7 +6,7 @@ import (
 	"github.com/lucasmls/ecommerce/services/products/adapters/repositories"
 	"github.com/lucasmls/ecommerce/services/products/app"
 	resolvers "github.com/lucasmls/ecommerce/services/products/ports/grpc"
-	pb "github.com/lucasmls/ecommerce/services/products/ports/grpc/proto"
+	protog "github.com/lucasmls/ecommerce/services/products/ports/grpc/proto"
 	"github.com/lucasmls/ecommerce/shared/grpc"
 	"go.opentelemetry.io/otel"
 	jaegerExporter "go.opentelemetry.io/otel/exporters/jaeger"
@@ -81,7 +81,7 @@ func main() {
 		Port:   8081,
 		Logger: logger,
 		Registrator: func(server gGRPC.ServiceRegistrar) {
-			pb.RegisterProductsServiceServer(server, productsResolver)
+			protog.RegisterProductsServiceServer(server, productsResolver)
 		},
 	})
 
