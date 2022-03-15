@@ -55,11 +55,7 @@ func main() {
 
 	tracer := otel.Tracer("products")
 
-	productsInMemoryRepository := repositories.MustNewInMemoryProductsRepository(repositories.ProductsRepositoryInput{
-		Logger: logger,
-		Tracer: tracer,
-		Size:   10,
-	})
+	productsInMemoryRepository := repositories.MustNewInMemoryProductsRepository(logger, tracer, 10)
 
 	// pgProductsRepository, err := repositories.NewPgProductsRepository(
 	// 	"dbname=products_service user=postgres password=postgres host=localhost port=5432 sslmode=disable",

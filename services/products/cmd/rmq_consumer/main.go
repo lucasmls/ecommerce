@@ -65,11 +65,7 @@ func main() {
 
 	tracer := otel.Tracer("products")
 
-	productsInMemoryRepository := repositories.MustNewInMemoryProductsRepository(repositories.ProductsRepositoryInput{
-		Logger: logger,
-		Tracer: tracer,
-		Size:   10,
-	})
+	productsInMemoryRepository := repositories.MustNewInMemoryProductsRepository(logger, tracer, 10)
 
 	application := app.MustNewApplication(app.ApplicationInput{
 		Logger:             logger,
