@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"math/rand"
-	"reflect"
 	"testing"
 
 	"github.com/lucasmls/ecommerce/services/products/domain"
@@ -109,18 +108,18 @@ func TestMustNewInMemoryProductsRepository(t *testing.T) {
 
 	t.Run("Successful tests", func(t *testing.T) {
 		tt := []struct {
-			name        string
-			logger      *zap.Logger
-			tracer      trace.Tracer
-			storageSize int
-			want        InMemoryProductsRepository
+			name           string
+			logger         *zap.Logger
+			tracer         trace.Tracer
+			storageSize    int
+			expectedResult InMemoryProductsRepository
 		}{
 			{
 				name:        "Should construct ProductsRepository with correct storage size",
 				logger:      loggerM,
 				tracer:      tracerM,
 				storageSize: 10,
-				want: InMemoryProductsRepository{
+				expectedResult: InMemoryProductsRepository{
 					Logger:      loggerM,
 					Tracer:      tracerM,
 					StorageSize: 10,
@@ -132,9 +131,7 @@ func TestMustNewInMemoryProductsRepository(t *testing.T) {
 		for _, tc := range tt {
 			t.Run(tc.name, func(t *testing.T) {
 				got := MustNewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
-				if !reflect.DeepEqual(got, tc.want) {
-					t.Errorf("NewInMemoryProductsRepository() got = %v, want %v", got, tc.want)
-				}
+				assert.Equal(t, got, tc.expectedResult)
 			})
 		}
 	})
@@ -280,7 +277,7 @@ func TestInMemoryProductsRepository_Update(t *testing.T) {
 					Description: "Fast!",
 					Price:       7000,
 				},
-				expectedResult: ErrProductNotFound,
+				expectedResult: domain.ErrProductNotFound,
 			},
 		}
 		for _, tc := range tests {
@@ -369,7 +366,7 @@ func TestInMemoryProductsRepository_Delete(t *testing.T) {
 				storageSize:    1,
 				ctx:            context.Background(),
 				productId:      1,
-				expectedResult: ErrProductNotFound,
+				expectedResult: domain.ErrProductNotFound,
 			},
 		}
 		for _, tc := range tt {

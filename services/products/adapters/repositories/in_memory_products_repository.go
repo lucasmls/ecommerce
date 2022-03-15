@@ -13,7 +13,6 @@ import (
 var (
 	ErrInvalidStorageSize  = errors.New("invalid-storage-size")
 	ErrStorageLimitReached = errors.New("storage-limit-reached")
-	ErrProductNotFound     = errors.New("product-not-found")
 )
 
 type InMemoryProductsRepository struct {
@@ -80,7 +79,7 @@ func (r InMemoryProductsRepository) Update(ctx context.Context, product domain.P
 	defer span.End()
 
 	if _, ok := r.storage[product.ID]; !ok {
-		return domain.Product{}, ErrProductNotFound
+		return domain.Product{}, domain.ErrProductNotFound
 	}
 
 	r.storage[product.ID] = product
@@ -94,7 +93,7 @@ func (r InMemoryProductsRepository) Delete(ctx context.Context, id int) error {
 
 	_, found := r.storage[id]
 	if !found {
-		return ErrProductNotFound
+		return domain.ErrProductNotFound
 	}
 
 	delete(r.storage, id)

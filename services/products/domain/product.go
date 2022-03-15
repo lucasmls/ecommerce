@@ -1,5 +1,7 @@
 package domain
 
+import "errors"
+
 // Product represents a product in the system.
 type Product struct {
 	ID          int
@@ -7,3 +9,7 @@ type Product struct {
 	Description string
 	Price       int
 }
+
+var (
+	ErrProductNotFound = errors.New("product-not-found")
+)
