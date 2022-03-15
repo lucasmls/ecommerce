@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 
+	grpcMiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpcPrometheusInterceptors "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
 	gGRPC "google.golang.org/grpc"
@@ -35,9 +37,20 @@ func NewServer(in ServerInput) (*Server, error) {
 		return nil, errors.New("missing required dependency: Registrator")
 	}
 
+	grpcPrometheusInterceptors.EnableHandlingTimeHistogram()
 	grpcServer := gGRPC.NewServer(
-		gGRPC.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
-		gGRPC.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
+		gGRPC.StreamInterceptor(
+			grpcMiddleware.ChainStreamServer(
+				otelgrpc.StreamServerInterceptor(),
+				grpcPrometheusInterceptors.StreamServerInterceptor,
+			),
+		),
+		gGRPC.UnaryInterceptor(
+			grpcMiddleware.ChainUnaryServer(
+				otelgrpc.UnaryServerInterceptor(),
+				grpcPrometheusInterceptors.UnaryServerInterceptor,
+			),
+		),
 	)
 
 	return &Server{
