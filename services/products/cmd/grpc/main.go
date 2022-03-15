@@ -8,12 +8,12 @@ import (
 	resolvers "github.com/lucasmls/ecommerce/services/products/ports/grpc"
 	protog "github.com/lucasmls/ecommerce/services/products/ports/grpc/proto"
 	"github.com/lucasmls/ecommerce/shared/grpc"
-	"go.opentelemetry.io/otel"
-	jaegerExporter "go.opentelemetry.io/otel/exporters/jaeger"
-	"go.opentelemetry.io/otel/propagation"
-	tracingSdkResource "go.opentelemetry.io/otel/sdk/resource"
-	tracingSdk "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+	otel "go.opentelemetry.io/otel"
+	otelJaegerExporter "go.opentelemetry.io/otel/exporters/jaeger"
+	otelPropagation "go.opentelemetry.io/otel/propagation"
+	otelSdkResource "go.opentelemetry.io/otel/sdk/resource"
+	otelTraceSdk "go.opentelemetry.io/otel/sdk/trace"
+	otelSemconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"go.uber.org/zap"
 	gGRPC "google.golang.org/grpc"
 )
@@ -24,9 +24,9 @@ func main() {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 
-	jaegerExporter, err := jaegerExporter.New(
-		jaegerExporter.WithCollectorEndpoint(
-			jaegerExporter.WithEndpoint("http://localhost:14268/api/traces"),
+	jaegerExporter, err := otelJaegerExporter.New(
+		otelJaegerExporter.WithCollectorEndpoint(
+			otelJaegerExporter.WithEndpoint("http://localhost:14268/api/traces"),
 		),
 	)
 	if err != nil {
@@ -34,12 +34,12 @@ func main() {
 		return
 	}
 
-	tracingProvider := tracingSdk.NewTracerProvider(
-		tracingSdk.WithBatcher(jaegerExporter),
-		tracingSdk.WithSampler(tracingSdk.AlwaysSample()),
-		tracingSdk.WithResource(tracingSdkResource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceNameKey.String("products"),
+	tracingProvider := otelTraceSdk.NewTracerProvider(
+		otelTraceSdk.WithBatcher(jaegerExporter),
+		otelTraceSdk.WithSampler(otelTraceSdk.AlwaysSample()),
+		otelTraceSdk.WithResource(otelSdkResource.NewWithAttributes(
+			otelSemconv.SchemaURL,
+			otelSemconv.ServiceNameKey.String("products"),
 		)),
 	)
 
@@ -48,9 +48,9 @@ func main() {
 	}()
 
 	otel.SetTracerProvider(tracingProvider)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
-		propagation.TraceContext{},
-		propagation.Baggage{},
+	otel.SetTextMapPropagator(otelPropagation.NewCompositeTextMapPropagator(
+		otelPropagation.TraceContext{},
+		otelPropagation.Baggage{},
 	))
 
 	tracer := otel.Tracer("products")
