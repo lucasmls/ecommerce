@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/lucasmls/ecommerce/services/products/domain"
+	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
@@ -35,9 +36,7 @@ func TestNewInMemoryProductsRepository(t *testing.T) {
 		for _, tc := range tt {
 			t.Run(tc.name, func(t *testing.T) {
 				_, err := NewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
-				if !reflect.DeepEqual(err, tc.expectedResult) {
-					t.Errorf("NewInMemoryProductsRepository() got = %v, want %v", err, tc.expectedResult)
-				}
+				assert.Equal(t, err, tc.expectedResult)
 			})
 		}
 	})
@@ -67,13 +66,9 @@ func TestNewInMemoryProductsRepository(t *testing.T) {
 		for _, tc := range tt {
 			t.Run(tc.name, func(t *testing.T) {
 				got, err := NewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
-				if err != nil {
-					t.Errorf("NewInMemoryProductsRepository should not have failed. Received: %v", err)
-				}
 
-				if !reflect.DeepEqual(got, tc.expectedResult) {
-					t.Errorf("NewInMemoryProductsRepository() got = %v, want %v", got, tc.expectedResult)
-				}
+				assert.NoError(t, err)
+				assert.Equal(t, got, tc.expectedResult)
 			})
 		}
 	})
@@ -104,10 +99,7 @@ func TestMustNewInMemoryProductsRepository(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				defer func() {
 					err := recover()
-
-					if !reflect.DeepEqual(err, tc.expectedResult) {
-						t.Errorf("MustNewInMemoryProductsRepository() got = %v, want %v", err, tc.expectedResult)
-					}
+					assert.Equal(t, err, tc.expectedResult)
 				}()
 
 				MustNewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
@@ -163,6 +155,7 @@ func TestInMemoryProductsRepository_Create(t *testing.T) {
 			ctx            context.Context
 			product        domain.Product
 			expectedResult error
+			beforeEach     func(ctx context.Context, productsRepo domain.ProductsRepository)
 		}{
 			{
 				name:        "Should not store a Product when the storage capacity is full",
@@ -177,22 +170,26 @@ func TestInMemoryProductsRepository_Create(t *testing.T) {
 					Price:       7000,
 				},
 				expectedResult: ErrStorageLimitReached,
+				beforeEach: func(ctx context.Context, productsRepo domain.ProductsRepository) {
+					productsRepo.Create(ctx, domain.Product{
+						ID:          1,
+						Name:        "Iphone 12",
+						Description: "Cool",
+						Price:       4500,
+					})
+				},
 			},
 		}
 		for _, tc := range tt {
 			t.Run(tc.name, func(t *testing.T) {
 				productsRepo := MustNewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
-				productsRepo.Create(tc.ctx, domain.Product{
-					ID:          1,
-					Name:        "Iphone 12",
-					Description: "Cool",
-					Price:       4500,
-				})
+
+				if tc.beforeEach != nil {
+					tc.beforeEach(tc.ctx, productsRepo)
+				}
 
 				_, err := productsRepo.Create(tc.ctx, tc.product)
-				if !reflect.DeepEqual(err, tc.expectedResult) {
-					t.Errorf("Create() got = %v, want %v", err, tc.expectedResult)
-				}
+				assert.EqualError(t, err, tc.expectedResult.Error())
 			})
 		}
 	})
@@ -248,14 +245,10 @@ func TestInMemoryProductsRepository_Create(t *testing.T) {
 		for _, tc := range tt {
 			t.Run(tc.name, func(t *testing.T) {
 				productsRepo := MustNewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
-				got, err := productsRepo.Create(tc.ctx, tc.product)
-				if err != nil {
-					t.Errorf("Create() should not have failed. Received: %v", err)
-				}
 
-				if !reflect.DeepEqual(got, tc.expectedResult) {
-					t.Errorf("Create() got = %v, want %v", got, tc.expectedResult)
-				}
+				got, err := productsRepo.Create(tc.ctx, tc.product)
+				assert.NoError(t, err)
+				assert.Equal(t, got, tc.expectedResult)
 			})
 		}
 	})
@@ -295,9 +288,7 @@ func TestInMemoryProductsRepository_Update(t *testing.T) {
 				productsRepo := MustNewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
 
 				_, err := productsRepo.Update(tc.ctx, tc.product)
-				if !reflect.DeepEqual(err, tc.expectedResult) {
-					t.Errorf("Create() got = %v, want %v", err, tc.expectedResult)
-				}
+				assert.EqualError(t, err, tc.expectedResult.Error())
 			})
 		}
 	})
@@ -350,13 +341,8 @@ func TestInMemoryProductsRepository_Update(t *testing.T) {
 				}
 
 				got, err := productsRepo.Update(tc.ctx, tc.product)
-				if err != nil {
-					t.Errorf("\nUpdate() should not have failed. \nReceived: %v", err)
-				}
-
-				if !reflect.DeepEqual(got, tc.expectedResult) {
-					t.Errorf("Update() got = %v, want %v", got, tc.expectedResult)
-				}
+				assert.NoError(t, err)
+				assert.Equal(t, got, tc.expectedResult)
 			})
 		}
 	})
@@ -389,33 +375,30 @@ func TestInMemoryProductsRepository_Delete(t *testing.T) {
 		for _, tc := range tt {
 			t.Run(tc.name, func(t *testing.T) {
 				productsRepo := MustNewInMemoryProductsRepository(tc.logger, tc.tracer, tc.storageSize)
+
 				err := productsRepo.Delete(tc.ctx, tc.productId)
-				if !reflect.DeepEqual(err, tc.expectedResult) {
-					t.Errorf("Delete() got = %v, want %v", err, tc.expectedResult)
-				}
+				assert.EqualError(t, err, tc.expectedResult.Error())
 			})
 		}
 	})
 
 	t.Run("Successful tests", func(t *testing.T) {
 		tt := []struct {
-			name           string
-			logger         *zap.Logger
-			tracer         trace.Tracer
-			storageSize    int
-			ctx            context.Context
-			productId      int
-			expectedResult error
-			beforeEach     func(ctx context.Context, productsRepo domain.ProductsRepository, productId int)
+			name        string
+			logger      *zap.Logger
+			tracer      trace.Tracer
+			storageSize int
+			ctx         context.Context
+			productId   int
+			beforeEach  func(ctx context.Context, productsRepo domain.ProductsRepository, productId int)
 		}{
 			{
-				name:           "Should remove the specified Product",
-				logger:         loggerM,
-				tracer:         tracerM,
-				storageSize:    2,
-				ctx:            context.Background(),
-				productId:      1,
-				expectedResult: nil,
+				name:        "Should remove the specified Product",
+				logger:      loggerM,
+				tracer:      tracerM,
+				storageSize: 2,
+				ctx:         context.Background(),
+				productId:   1,
 				beforeEach: func(ctx context.Context, productsRepo domain.ProductsRepository, productId int) {
 					productsRepo.Create(ctx, domain.Product{
 						ID:          productId,
@@ -435,9 +418,7 @@ func TestInMemoryProductsRepository_Delete(t *testing.T) {
 				}
 
 				err := productsRepo.Delete(tc.ctx, tc.productId)
-				if !reflect.DeepEqual(err, tc.expectedResult) {
-					t.Errorf("Delete() got = %v, want %v", err, tc.expectedResult)
-				}
+				assert.NoError(t, err)
 			})
 		}
 	})
@@ -541,13 +522,9 @@ func TestInMemoryProductsRepository_List(t *testing.T) {
 				}
 
 				got, err := productsRepo.List(tc.ctx, tc.filter)
-				if err != nil {
-					t.Errorf("List() should not have failed. Received: %v", err)
-				}
 
-				if !reflect.DeepEqual(got, tc.expectedResult) {
-					t.Errorf("List() got = %v, want %v", got, tc.expectedResult)
-				}
+				assert.NoError(t, err)
+				assert.ElementsMatch(t, got, tc.expectedResult)
 			})
 		}
 	})
