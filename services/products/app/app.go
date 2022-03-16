@@ -19,12 +19,12 @@ func NewApplication(
 	logger *zap.Logger,
 	tracer trace.Tracer,
 	productsRepository domain.ProductsRepository,
-) (application, error) {
+) application {
 	return application{
 		Logger:             logger,
 		Tracer:             tracer,
 		ProductsRepository: productsRepository,
-	}, nil
+	}
 }
 
 // MustNewApplication creates a new Application instance
@@ -34,10 +34,6 @@ func MustNewApplication(
 	tracer trace.Tracer,
 	productsRepository domain.ProductsRepository,
 ) application {
-	app, err := NewApplication(logger, tracer, productsRepository)
-	if err != nil {
-		panic(err)
-	}
-
+	app := NewApplication(logger, tracer, productsRepository)
 	return app
 }
