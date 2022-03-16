@@ -66,12 +66,7 @@ func main() {
 	// }
 
 	application := app.MustNewApplication(logger, tracer, productsInMemoryRepository)
-
-	productsResolver := resolvers.MustNewProductsResolver(resolvers.ProductsResolverInput{
-		Logger: logger,
-		Tracer: tracer,
-		App:    application,
-	})
+	productsResolver := resolvers.MustNewProductsResolver(logger, tracer, application)
 
 	server := grpc.MustNewServer(grpc.ServerInput{
 		Port:   8081,

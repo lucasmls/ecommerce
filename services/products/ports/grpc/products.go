@@ -10,43 +10,48 @@ import (
 	"go.uber.org/zap"
 )
 
-// ProductsResolverInput ...
-type ProductsResolverInput struct {
-	Logger *zap.Logger
-	App    domain.Application
-	Tracer trace.Tracer
-}
-
 // ProductsResolver ...
 type ProductsResolver struct {
-	in ProductsResolverInput
+	Logger *zap.Logger
+	Tracer trace.Tracer
+	App    domain.Application
 
 	pb.UnimplementedProductsServiceServer
 }
 
-func NewProductsResolver(in ProductsResolverInput) (*ProductsResolver, error) {
-	if in.Logger == nil {
+func NewProductsResolver(
+	logger *zap.Logger,
+	tracer trace.Tracer,
+	app domain.Application,
+) (*ProductsResolver, error) {
+	if logger == nil {
 		return nil, errors.New("missing required dependency: Logger")
 	}
 
 	return &ProductsResolver{
-		in: in,
+		Logger: logger,
+		Tracer: tracer,
+		App:    app,
 	}, nil
 }
 
 // MustNewProductsResolver creates a new ProductsResolver instance.
 //It panics if any error is found
-func MustNewProductsResolver(in ProductsResolverInput) *ProductsResolver {
-	app, err := NewProductsResolver(in)
+func MustNewProductsResolver(
+	logger *zap.Logger,
+	tracer trace.Tracer,
+	app domain.Application,
+) *ProductsResolver {
+	productsResolver, err := NewProductsResolver(logger, tracer, app)
 	if err != nil {
 		panic(err)
 	}
 
-	return app
+	return productsResolver
 }
 
 func (r *ProductsResolver) List(ctx context.Context, req *pb.ListRequest) (*pb.ListResponse, error) {
-	ctx, span := r.in.Tracer.Start(ctx, "resolver.List")
+	ctx, span := r.Tracer.Start(ctx, "resolver.List")
 	defer span.End()
 
 	var filter domain.ListProductsFilter
@@ -54,9 +59,9 @@ func (r *ProductsResolver) List(ctx context.Context, req *pb.ListRequest) (*pb.L
 		filter.IDs = append(filter.IDs, int(id))
 	}
 
-	r.in.Logger.Info("received a request to list Products", zap.Any("filter", filter))
+	r.Logger.Info("received a request to list Products", zap.Any("filter", filter))
 
-	products, err := r.in.App.ListProducts(ctx, filter)
+	products, err := r.App.ListProducts(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -78,12 +83,12 @@ func (r *ProductsResolver) List(ctx context.Context, req *pb.ListRequest) (*pb.L
 }
 
 func (r *ProductsResolver) Register(ctx context.Context, req *pb.Product) (*pb.RegisterResponse, error) {
-	ctx, span := r.in.Tracer.Start(ctx, "resolver.Register")
+	ctx, span := r.Tracer.Start(ctx, "resolver.Register")
 	defer span.End()
 
-	r.in.Logger.Info("registering a new product", zap.Any("product", req))
+	r.Logger.Info("registering a new product", zap.Any("product", req))
 
-	product, err := r.in.App.RegisterProduct(ctx, domain.Product{
+	product, err := r.App.RegisterProduct(ctx, domain.Product{
 		ID:          int(req.Id),
 		Name:        req.Name,
 		Description: req.Description,
@@ -106,12 +111,12 @@ func (r *ProductsResolver) Register(ctx context.Context, req *pb.Product) (*pb.R
 }
 
 func (r *ProductsResolver) Update(ctx context.Context, req *pb.Product) (*pb.UpdateResponse, error) {
-	ctx, span := r.in.Tracer.Start(ctx, "resolver.Update")
+	ctx, span := r.Tracer.Start(ctx, "resolver.Update")
 	defer span.End()
 
-	r.in.Logger.Info("updating a product", zap.Any("product", req))
+	r.Logger.Info("updating a product", zap.Any("product", req))
 
-	product, err := r.in.App.UpdateProduct(ctx, domain.Product{
+	product, err := r.App.UpdateProduct(ctx, domain.Product{
 		ID:          int(req.Id),
 		Name:        req.Name,
 		Description: req.Description,
@@ -134,14 +139,14 @@ func (r *ProductsResolver) Update(ctx context.Context, req *pb.Product) (*pb.Upd
 }
 
 func (r *ProductsResolver) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
-	ctx, span := r.in.Tracer.Start(ctx, "resolver.Delete")
+	ctx, span := r.Tracer.Start(ctx, "resolver.Delete")
 	defer span.End()
 
 	productId := int(req.Id)
 
-	r.in.Logger.Info("deleting a product", zap.Int("id", productId))
+	r.Logger.Info("deleting a product", zap.Int("id", productId))
 
-	err := r.in.App.DeleteProduct(ctx, productId)
+	err := r.App.DeleteProduct(ctx, productId)
 	if err != nil {
 		return nil, err
 	}
