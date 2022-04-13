@@ -18,6 +18,8 @@ type ServerInput struct {
 	Port        int
 	Registrator func(server gGRPC.ServiceRegistrar)
 	Logger      *zap.Logger
+
+	Listener net.Listener
 }
 
 // Server is the GRPC server itself.
@@ -75,13 +77,19 @@ func (s Server) Run(ctx context.Context) error {
 
 	address := fmt.Sprintf(":%d", s.in.Port)
 
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		s.in.Logger.Error("failed to start to listen TCP address", zap.Error(err))
-		return err
+	listener := s.in.Listener
+	if listener == nil {
+		l, err := net.Listen("tcp", address)
+		if err != nil {
+			s.in.Logger.Error("failed to start to listen TCP address", zap.Error(err))
+			return err
+		}
+
+		listener = l
 	}
 
-	fmt.Println("gRPC server started in port:", s.in.Port)
+	s.in.Logger.Info("gRPC server started:", zap.Int("port", s.in.Port))
+
 	if err := s.server.Serve(listener); err != nil {
 		s.in.Logger.Error("failed to serve gRPC server", zap.Error(err))
 		return err
