@@ -8,6 +8,12 @@ import (
 	pb "github.com/lucasmls/ecommerce/services/products/ports/grpc/proto"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+var (
+	InternalServerError = status.Error(codes.Internal, "Internal server error")
 )
 
 // ProductsResolver ...
@@ -148,7 +154,17 @@ func (r *ProductsResolver) Delete(ctx context.Context, req *pb.DeleteRequest) (*
 
 	err := r.App.DeleteProduct(ctx, productId)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, domain.ErrProductNotFound) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+
+		r.Logger.Sugar().Errorw(
+			"failed to delete the product",
+			zap.Error(err),
+			zap.Int("productId", productId),
+		)
+
+		return nil, InternalServerError
 	}
 
 	response := &pb.DeleteResponse{
