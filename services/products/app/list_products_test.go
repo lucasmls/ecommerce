@@ -5,113 +5,79 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/lucasmls/ecommerce/services/products/domain"
 	"github.com/lucasmls/ecommerce/services/products/mocks"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
-func TestListProducts(t *testing.T) {
+type ListProductsSuite struct {
+	suite.Suite
+
+	productsRepo *mocks.ProductsRepository
+	app          domain.Application
+}
+
+func (s *ListProductsSuite) SetupSuite() {
 	loggerM := zap.NewNop()
 	tracerM := trace.NewNoopTracerProvider().Tracer("")
+	s.productsRepo = &mocks.ProductsRepository{}
 
-	products := []domain.Product{
-		{
-			ID:          1,
-			Name:        "Iphone 13",
-			Description: "Cool",
-			Price:       4500,
-		},
-		{
-			ID:          2,
-			Name:        "Macbook Pro M1 Max",
-			Description: "Fast!",
-			Price:       16500,
-		},
-		{
-			ID:          3,
-			Name:        "Macbook Air M1",
-			Description: "Nice!",
-			Price:       6900,
-		},
-	}
+	s.app = NewApplication(loggerM, tracerM, s.productsRepo)
+}
 
-	t.Run("Failure tests", func(t *testing.T) {
-		tt := []struct {
-			name                string
-			logger              *zap.Logger
-			tracer              trace.Tracer
-			expectedResult      error
-			productsRepositoryM func(context.Context, *gomock.Controller) domain.ProductsRepository
-		}{
+func (s *ListProductsSuite) Test_ListProducts() {
+	s.Run("Should fail when repository.List returns any error", func() {
+		ctx := context.Background()
+		filter := domain.ListProductsFilter{}
+
+		s.productsRepo.
+			On("List",
+				mock.AnythingOfType("*context.valueCtx"),
+				filter,
+			).
+			Return([]domain.Product{}, errors.New("failed to list products from the datastore"))
+
+		_, err := s.app.ListProducts(ctx, filter)
+
+		s.Equal(errors.New("failed to list products from the datastore"), err)
+	})
+
+	s.Run("Should return the Products returned by the repository layer", func() {
+		products := []domain.Product{
 			{
-				name:           "Should fail when repository.List returns a error",
-				logger:         loggerM,
-				tracer:         tracerM,
-				expectedResult: errors.New("failed to list products from the datastore"),
-				productsRepositoryM: func(c context.Context, g *gomock.Controller) domain.ProductsRepository {
-					productsRepoM := mocks.NewMockProductsRepository(g)
-
-					productsRepoM.EXPECT().
-						List(gomock.Any(), domain.ListProductsFilter{}).
-						Return([]domain.Product{}, errors.New("failed to list products from the datastore"))
-
-					return productsRepoM
-				},
+				ID:          1,
+				Name:        "Iphone 13",
+				Description: "Cool",
+				Price:       4500,
+			},
+			{
+				ID:          2,
+				Name:        "Macbook Pro M1 Max",
+				Description: "Fast!",
+				Price:       16500,
 			},
 		}
 
-		for _, tc := range tt {
-			t.Run(tc.name, func(t *testing.T) {
-				ctx := context.Background()
-				ctrl := gomock.NewController(t)
+		ctx := context.Background()
+		filter := domain.ListProductsFilter{IDs: []int{1, 2}}
 
-				a := MustNewApplication(tc.logger, tc.tracer, tc.productsRepositoryM(ctx, ctrl))
+		s.productsRepo.On("List",
+			mock.AnythingOfType("*context.valueCtx"),
+			filter,
+		).
+			Return(products, nil)
 
-				_, err := a.ListProducts(ctx, domain.ListProductsFilter{})
-				assert.EqualError(t, err, tc.expectedResult.Error())
-			})
-		}
+		got, err := s.app.ListProducts(ctx, filter)
+
+		s.NoError(err)
+		s.ElementsMatch(products, got)
 	})
+}
 
-	t.Run("Successful tests", func(t *testing.T) {
-		tt := []struct {
-			name                string
-			logger              *zap.Logger
-			tracer              trace.Tracer
-			expectedResult      []domain.Product
-			productsRepositoryM func(context.Context, *gomock.Controller) domain.ProductsRepository
-		}{
-			{
-				name:           "Should return the Products returned by the repository layer",
-				logger:         loggerM,
-				tracer:         tracerM,
-				expectedResult: products,
-				productsRepositoryM: func(c context.Context, g *gomock.Controller) domain.ProductsRepository {
-					productsRepoM := mocks.NewMockProductsRepository(g)
-
-					productsRepoM.EXPECT().
-						List(gomock.Any(), domain.ListProductsFilter{}).
-						Return(products, nil)
-
-					return productsRepoM
-				},
-			},
-		}
-
-		for _, tc := range tt {
-			t.Run(tc.name, func(t *testing.T) {
-				ctx := context.Background()
-				ctrl := gomock.NewController(t)
-
-				a := MustNewApplication(tc.logger, tc.tracer, tc.productsRepositoryM(ctx, ctrl))
-
-				got, err := a.ListProducts(ctx, domain.ListProductsFilter{})
-				assert.NoError(t, err)
-				assert.Equal(t, got, tc.expectedResult)
-			})
-		}
-	})
+func TestListProductsSuite(t *testing.T) {
+	suite.Run(t, new(ListProductsSuite))
 }

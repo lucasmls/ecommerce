@@ -4,103 +4,64 @@ import (
 	"context"
 	"testing"
 
-	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/lucasmls/ecommerce/services/products/domain"
 	"github.com/lucasmls/ecommerce/services/products/mocks"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
-func Test_DeleteProduct(t *testing.T) {
+type DeleteProductSuite struct {
+	suite.Suite
+
+	productsRepo *mocks.ProductsRepository
+	app          domain.Application
+}
+
+func (s *DeleteProductSuite) SetupSuite() {
 	loggerM := zap.NewNop()
 	tracerM := trace.NewNoopTracerProvider().Tracer("")
+	s.productsRepo = &mocks.ProductsRepository{}
 
-	t.Run("Failure tests", func(t *testing.T) {
-		tt := []struct {
-			name                string
-			logger              *zap.Logger
-			tracer              trace.Tracer
-			productId           int
-			expectedResult      error
-			productsRepositoryM func(ctx context.Context, ctrl *gomock.Controller, productId int) domain.ProductsRepository
-		}{
-			{
-				name:           "Should return not found error in case the specified product isn't stored",
-				expectedResult: domain.ErrProductNotFound,
-				logger:         loggerM,
-				tracer:         tracerM,
-				productId:      123,
-				productsRepositoryM: func(ctx context.Context, ctrl *gomock.Controller, productId int) domain.ProductsRepository {
-					productsRepoM := mocks.NewMockProductsRepository(ctrl)
+	s.app = NewApplication(loggerM, tracerM, s.productsRepo)
+}
 
-					productsRepoM.EXPECT().
-						Delete(gomock.Any(), productId).
-						Return(domain.ErrProductNotFound)
+func (s *DeleteProductSuite) Test_DeleteProduct() {
+	s.Run("Should return not found error in case the specified product isn't stored", func() {
+		ctx := context.Background()
+		productId := 1
 
-					return productsRepoM
-				},
-			},
-		}
+		s.productsRepo.
+			On("Delete",
+				mock.AnythingOfType("*context.valueCtx"),
+				productId,
+			).
+			Return(domain.ErrProductNotFound)
 
-		for _, tc := range tt {
-			t.Run(tc.name, func(t *testing.T) {
-				ctx := context.Background()
-				ctrl := gomock.NewController(t)
+		err := s.app.DeleteProduct(ctx, productId)
 
-				a := MustNewApplication(
-					tc.logger,
-					tc.tracer,
-					tc.productsRepositoryM(ctx, ctrl, tc.productId),
-				)
-
-				err := a.DeleteProduct(ctx, tc.productId)
-				assert.EqualError(t, err, tc.expectedResult.Error())
-			})
-		}
+		s.Equal(domain.ErrProductNotFound, err)
 	})
 
-	t.Run("Successful tests", func(t *testing.T) {
-		tt := []struct {
-			name                string
-			logger              *zap.Logger
-			tracer              trace.Tracer
-			productId           int
-			expectedResult      error
-			productsRepositoryM func(ctx context.Context, ctrl *gomock.Controller, productId int) domain.ProductsRepository
-		}{
-			{
-				name:           "Should delete the specified product",
-				logger:         loggerM,
-				tracer:         tracerM,
-				expectedResult: nil,
-				productId:      123,
-				productsRepositoryM: func(ctx context.Context, ctrl *gomock.Controller, productId int) domain.ProductsRepository {
-					productsRepoM := mocks.NewMockProductsRepository(ctrl)
+	s.Run("Should delete the specified product", func() {
+		ctx := context.Background()
+		productId := 2
 
-					productsRepoM.EXPECT().
-						Delete(gomock.Any(), productId).
-						Return(nil)
+		s.productsRepo.
+			On("Delete",
+				mock.AnythingOfType("*context.valueCtx"),
+				productId,
+			).
+			Return(nil)
 
-					return productsRepoM
-				},
-			},
-		}
+		err := s.app.DeleteProduct(ctx, productId)
 
-		for _, tc := range tt {
-			t.Run(tc.name, func(t *testing.T) {
-				ctx := context.Background()
-				ctrl := gomock.NewController(t)
-
-				a := MustNewApplication(
-					tc.logger,
-					tc.tracer,
-					tc.productsRepositoryM(ctx, ctrl, tc.productId),
-				)
-
-				err := a.DeleteProduct(ctx, tc.productId)
-				assert.NoError(t, err, tc.expectedResult)
-			})
-		}
+		s.NoError(err)
 	})
+}
+
+func TestDeleteProductSuite(t *testing.T) {
+	suite.Run(t, new(DeleteProductSuite))
 }

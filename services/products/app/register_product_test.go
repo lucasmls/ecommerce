@@ -5,119 +5,72 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/mock"
+
+	"github.com/stretchr/testify/suite"
+
 	"github.com/lucasmls/ecommerce/services/products/domain"
 	"github.com/lucasmls/ecommerce/services/products/mocks"
-	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
-func Test_RegisterProduct(t *testing.T) {
+type RegisterProductSuite struct {
+	suite.Suite
+
+	productsRepo *mocks.ProductsRepository
+	app          domain.Application
+}
+
+func (s *RegisterProductSuite) SetupSuite() {
 	loggerM := zap.NewNop()
 	tracerM := trace.NewNoopTracerProvider().Tracer("")
+	s.productsRepo = &mocks.ProductsRepository{}
 
-	t.Run("Failure tests", func(t *testing.T) {
-		tt := []struct {
-			name                string
-			logger              *zap.Logger
-			tracer              trace.Tracer
-			product             domain.Product
-			expectedResult      error
-			productsRepositoryM func(context.Context, *gomock.Controller, domain.Product) domain.ProductsRepository
-		}{
-			{
-				name:   "Should fail when repository.Create returns a error",
-				logger: loggerM,
-				tracer: tracerM,
-				product: domain.Product{
-					ID:          1,
-					Name:        "Iphone 13",
-					Description: "Cool",
-					Price:       4500,
-				},
-				expectedResult: errors.New("Failed to register Product"),
-				productsRepositoryM: func(c context.Context, g *gomock.Controller, product domain.Product) domain.ProductsRepository {
-					productsRepoM := mocks.NewMockProductsRepository(g)
+	s.app = NewApplication(loggerM, tracerM, s.productsRepo)
+}
 
-					productsRepoM.EXPECT().
-						Create(gomock.Any(), product).
-						Return(domain.Product{}, errors.New("Failed to register Product"))
-
-					return productsRepoM
-				},
-			},
+func (s *RegisterProductSuite) Test_RegisterProduct() {
+	s.Run("Should fail when repository.Create returns any error", func() {
+		ctx := context.Background()
+		product := domain.Product{
+			ID:          1,
+			Name:        "Macbook Air M1",
+			Description: "Fast!",
+			Price:       6800,
 		}
 
-		for _, tc := range tt {
-			t.Run(tc.name, func(t *testing.T) {
-				ctx := context.Background()
-				ctrl := gomock.NewController(t)
+		s.productsRepo.On("Create",
+			mock.AnythingOfType("*context.valueCtx"),
+			product,
+		).Return(domain.Product{}, errors.New("failed to register Product"))
 
-				a := MustNewApplication(
-					tc.logger,
-					tc.tracer,
-					tc.productsRepositoryM(ctx, ctrl, tc.product),
-				)
+		_, err := s.app.RegisterProduct(ctx, product)
 
-				_, err := a.RegisterProduct(ctx, tc.product)
-				assert.EqualError(t, err, tc.expectedResult.Error())
-			})
-		}
+		s.Equal(errors.New("failed to register Product"), err)
 	})
 
-	t.Run("Successful tests", func(t *testing.T) {
-		tt := []struct {
-			name                string
-			logger              *zap.Logger
-			tracer              trace.Tracer
-			product             domain.Product
-			expectedResult      domain.Product
-			productsRepositoryM func(context.Context, *gomock.Controller, domain.Product) domain.ProductsRepository
-		}{
-			{
-				name:   "Should register a new Product",
-				logger: loggerM,
-				tracer: tracerM,
-				product: domain.Product{
-					ID:          1,
-					Name:        "Iphone 13",
-					Description: "Cool",
-					Price:       4500,
-				},
-				expectedResult: domain.Product{
-					ID:          1,
-					Name:        "Iphone 13",
-					Description: "Cool",
-					Price:       4500,
-				},
-				productsRepositoryM: func(c context.Context, g *gomock.Controller, product domain.Product) domain.ProductsRepository {
-					productsRepoM := mocks.NewMockProductsRepository(g)
-
-					productsRepoM.EXPECT().
-						Create(gomock.Any(), product).
-						Return(product, nil)
-
-					return productsRepoM
-				},
-			},
+	s.Run("Should register a new Product", func() {
+		ctx := context.Background()
+		product := domain.Product{
+			ID:          2,
+			Name:        "Macbook Air M1",
+			Description: "Fast!",
+			Price:       6800,
 		}
 
-		for _, tc := range tt {
-			t.Run(tc.name, func(t *testing.T) {
-				ctx := context.Background()
-				ctrl := gomock.NewController(t)
+		s.productsRepo.On("Create",
+			mock.AnythingOfType("*context.valueCtx"),
+			product,
+		).Return(product, nil)
 
-				a := MustNewApplication(
-					tc.logger,
-					tc.tracer,
-					tc.productsRepositoryM(ctx, ctrl, tc.product),
-				)
+		got, err := s.app.RegisterProduct(ctx, product)
 
-				got, err := a.RegisterProduct(ctx, tc.product)
-				assert.NoError(t, err)
-				assert.Equal(t, got, tc.expectedResult)
-			})
-		}
+		s.NoError(err)
+		s.Equal(product, got)
 	})
+}
+
+func TestRegisterProductSuite(t *testing.T) {
+	suite.Run(t, new(RegisterProductSuite))
 }

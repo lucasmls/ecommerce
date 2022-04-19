@@ -4,119 +4,71 @@ import (
 	"context"
 	"testing"
 
-	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
+
 	"github.com/lucasmls/ecommerce/services/products/domain"
 	"github.com/lucasmls/ecommerce/services/products/mocks"
-	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
-func Test_UpdateProduct(t *testing.T) {
+type UpdateProductSuite struct {
+	suite.Suite
+
+	productsRepo *mocks.ProductsRepository
+	app          domain.Application
+}
+
+func (s *UpdateProductSuite) SetupSuite() {
 	loggerM := zap.NewNop()
 	tracerM := trace.NewNoopTracerProvider().Tracer("")
+	s.productsRepo = &mocks.ProductsRepository{}
 
-	t.Run("Failure tests", func(t *testing.T) {
-		tt := []struct {
-			name                string
-			logger              *zap.Logger
-			tracer              trace.Tracer
-			product             domain.Product
-			expectedResult      error
-			productsRepositoryM func(ctx context.Context, ctrl *gomock.Controller, product domain.Product) domain.ProductsRepository
-		}{
-			{
-				name:           "Should return not found error in case the specified product isn't stored",
-				expectedResult: domain.ErrProductNotFound,
-				logger:         loggerM,
-				tracer:         tracerM,
-				product: domain.Product{
-					ID:          123,
-					Name:        "Macbook Air M1",
-					Description: "Cool!",
-					Price:       6800,
-				},
-				productsRepositoryM: func(ctx context.Context, ctrl *gomock.Controller, product domain.Product) domain.ProductsRepository {
-					productsRepoM := mocks.NewMockProductsRepository(ctrl)
+	s.app = MustNewApplication(loggerM, tracerM, s.productsRepo)
+}
 
-					productsRepoM.EXPECT().
-						Update(gomock.Any(), product).
-						Return(domain.Product{}, domain.ErrProductNotFound)
-
-					return productsRepoM
-				},
-			},
+func (s *UpdateProductSuite) Test_UpdateProduct() {
+	s.Run("Should return not found error in case the specified product isn't stored", func() {
+		ctx := context.Background()
+		product := domain.Product{
+			ID:          1,
+			Name:        "Macbook Air M1",
+			Description: "Fast!",
+			Price:       6800,
 		}
 
-		for _, tc := range tt {
-			t.Run(tc.name, func(t *testing.T) {
-				ctx := context.Background()
-				ctrl := gomock.NewController(t)
+		s.productsRepo.On("Update",
+			mock.AnythingOfType("*context.valueCtx"),
+			product,
+		).Return(domain.Product{}, domain.ErrProductNotFound)
 
-				a := MustNewApplication(
-					tc.logger,
-					tc.tracer,
-					tc.productsRepositoryM(ctx, ctrl, tc.product),
-				)
+		_, err := s.app.UpdateProduct(ctx, product)
 
-				_, err := a.UpdateProduct(ctx, tc.product)
-				assert.EqualError(t, err, tc.expectedResult.Error())
-			})
-		}
+		s.Equal(domain.ErrProductNotFound, err)
 	})
 
-	t.Run("Successful tests", func(t *testing.T) {
-		tt := []struct {
-			name                string
-			logger              *zap.Logger
-			tracer              trace.Tracer
-			product             domain.Product
-			expectedResult      domain.Product
-			productsRepositoryM func(ctx context.Context, ctrl *gomock.Controller, product domain.Product) domain.ProductsRepository
-		}{
-			{
-				name:   "Should return the updated product",
-				logger: loggerM,
-				tracer: tracerM,
-				product: domain.Product{
-					ID:          123,
-					Name:        "Macbook Air M1",
-					Description: "Cool!",
-					Price:       6800,
-				},
-				expectedResult: domain.Product{
-					ID:          123,
-					Name:        "Macbook Air M1",
-					Description: "Cool!",
-					Price:       6800,
-				},
-				productsRepositoryM: func(ctx context.Context, ctrl *gomock.Controller, product domain.Product) domain.ProductsRepository {
-					productsRepoM := mocks.NewMockProductsRepository(ctrl)
-
-					productsRepoM.EXPECT().
-						Update(gomock.Any(), product).
-						Return(product, nil)
-
-					return productsRepoM
-				},
-			},
+	s.Run("Should return the updated product", func() {
+		ctx := context.Background()
+		product := domain.Product{
+			ID:          2,
+			Name:        "Macbook Air M1 - Updated",
+			Description: "Fast!!!",
+			Price:       6800,
 		}
 
-		for _, tc := range tt {
-			t.Run(tc.name, func(t *testing.T) {
-				ctx := context.Background()
-				ctrl := gomock.NewController(t)
+		s.productsRepo.On("Update",
+			mock.AnythingOfType("*context.valueCtx"),
+			product,
+		).Return(product, nil)
 
-				a := MustNewApplication(
-					tc.logger,
-					tc.tracer,
-					tc.productsRepositoryM(ctx, ctrl, tc.product),
-				)
+		got, err := s.app.UpdateProduct(ctx, product)
 
-				got, err := a.UpdateProduct(ctx, tc.product)
-				assert.NoError(t, err)
-				assert.Equal(t, got, tc.expectedResult)
-			})
-		}
+		s.NoError(err)
+		s.Equal(product, got)
 	})
+}
+
+func TestUpdateProductSuite(t *testing.T) {
+	suite.Run(t, new(UpdateProductSuite))
 }
