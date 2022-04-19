@@ -3,3 +3,6 @@
 
 # Docker volumes
 /volumes
+
+# Generated Mocks folder
+/mocks
