@@ -53,7 +53,7 @@ mock:
 	@ echo
 	@ mkdir -p mocks
 	@ rm mocks/*.go || true && \
-		mockgen -source=./domain/contracts.go -destination=./mocks/domain.go -package=mocks
+		mockery --dir=./domain --all
 
 %:
 	@:
