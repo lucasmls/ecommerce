@@ -16,6 +16,11 @@ var (
 	InternalServerError = status.Error(codes.Internal, "Internal server error")
 )
 
+var (
+	ErrMissingLogger = errors.New("missing required dependency: Logger")
+	ErrMisingTracer  = errors.New("missing required dependency: Tracer")
+)
+
 // ProductsResolver ...
 type ProductsResolver struct {
 	Logger *zap.Logger
@@ -31,7 +36,11 @@ func NewProductsResolver(
 	app domain.Application,
 ) (*ProductsResolver, error) {
 	if logger == nil {
-		return nil, errors.New("missing required dependency: Logger")
+		return nil, ErrMissingLogger
+	}
+
+	if tracer == nil {
+		return nil, ErrMisingTracer
 	}
 
 	return &ProductsResolver{
@@ -69,7 +78,13 @@ func (r *ProductsResolver) List(ctx context.Context, req *pb.ListRequest) (*pb.L
 
 	products, err := r.App.ListProducts(ctx, filter)
 	if err != nil {
-		return nil, err
+		r.Logger.Sugar().Errorw(
+			"failed to list products",
+			zap.Error(err),
+			zap.Any("filter", filter),
+		)
+
+		return nil, InternalServerError
 	}
 
 	response := pb.ListResponse{
@@ -92,7 +107,7 @@ func (r *ProductsResolver) Register(ctx context.Context, req *pb.Product) (*pb.R
 	ctx, span := r.Tracer.Start(ctx, "resolver.Register")
 	defer span.End()
 
-	r.Logger.Info("registering a new product", zap.Any("product", req))
+	r.Logger.Info("registering a new product", zap.Any("req", req))
 
 	product, err := r.App.RegisterProduct(ctx, domain.Product{
 		ID:          int(req.Id),
@@ -101,7 +116,13 @@ func (r *ProductsResolver) Register(ctx context.Context, req *pb.Product) (*pb.R
 		Price:       int(req.Price),
 	})
 	if err != nil {
-		return nil, err
+		r.Logger.Sugar().Errorw(
+			"failed to register the provided product",
+			zap.Error(err),
+			zap.Any("product", product),
+		)
+
+		return nil, InternalServerError
 	}
 
 	response := &pb.RegisterResponse{
@@ -120,7 +141,7 @@ func (r *ProductsResolver) Update(ctx context.Context, req *pb.Product) (*pb.Upd
 	ctx, span := r.Tracer.Start(ctx, "resolver.Update")
 	defer span.End()
 
-	r.Logger.Info("updating a product", zap.Any("product", req))
+	r.Logger.Info("updating a product", zap.Any("req", req))
 
 	product, err := r.App.UpdateProduct(ctx, domain.Product{
 		ID:          int(req.Id),
@@ -129,7 +150,17 @@ func (r *ProductsResolver) Update(ctx context.Context, req *pb.Product) (*pb.Upd
 		Price:       int(req.Price),
 	})
 	if err != nil {
-		return nil, err
+		if errors.Is(err, domain.ErrProductNotFound) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+
+		r.Logger.Sugar().Errorw(
+			"failed to update the provided product",
+			zap.Error(err),
+			zap.Any("product", product),
+		)
+
+		return nil, InternalServerError
 	}
 
 	response := &pb.UpdateResponse{
