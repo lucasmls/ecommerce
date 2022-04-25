@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/lucasmls/ecommerce/services/products/adapters/repositories"
 	"github.com/lucasmls/ecommerce/services/products/app"
 	resolvers "github.com/lucasmls/ecommerce/services/products/ports/grpc"
 	protog "github.com/lucasmls/ecommerce/services/products/ports/grpc/proto"
 	"github.com/lucasmls/ecommerce/shared/grpc"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	otel "go.opentelemetry.io/otel"
 	otelJaegerExporter "go.opentelemetry.io/otel/exporters/jaeger"
 	otelPropagation "go.opentelemetry.io/otel/propagation"
@@ -75,6 +77,11 @@ func main() {
 			protog.RegisterProductsServiceServer(server, productsResolver)
 		},
 	})
+
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		http.ListenAndServe(":2112", nil)
+	}()
 
 	if err := server.Run(ctx); err != nil {
 		logger.Error("failed to run gRPC server", zap.Error(err))
