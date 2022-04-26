@@ -1,5 +1,5 @@
 # Environment variables
-.env
+app.env
 
 # Docker volumes
 /volumes
