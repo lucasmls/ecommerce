@@ -68,8 +68,7 @@ func main() {
 		),
 	)
 	if err != nil {
-		logger.Error("failed to instantiate Jaeger exporter", zap.Error(err))
-		return
+		logger.Fatal("failed to instantiate Jaeger exporter", zap.Error(err))
 	}
 
 	tracingProvider := otelTraceSdk.NewTracerProvider(
@@ -122,7 +121,6 @@ func main() {
 	}()
 
 	if err := server.Run(ctx); err != nil {
-		logger.Error("failed to run gRPC server", zap.Error(err))
-		return
+		logger.Fatal("failed to run gRPC server", zap.Error(err))
 	}
 }
