@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/lucasmls/ecommerce/services/products/adapters/repositories"
@@ -10,6 +11,7 @@ import (
 	protog "github.com/lucasmls/ecommerce/services/products/ports/grpc/proto"
 	"github.com/lucasmls/ecommerce/shared/grpc"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/spf13/viper"
 	otel "go.opentelemetry.io/otel"
 	otelJaegerExporter "go.opentelemetry.io/otel/exporters/jaeger"
 	otelPropagation "go.opentelemetry.io/otel/propagation"
@@ -20,15 +22,49 @@ import (
 	gGRPC "google.golang.org/grpc"
 )
 
+type ApplicationConfig struct {
+	ServiceName    string `mapstructure:"SERVICE_NAME"`
+	JaegerEndpoint string `mapstructure:"JAEGER_ENDPOINT"`
+	GrpcServerPort int    `mapstructure:"GRPC_SERVER_PORT"`
+	MetricsPort    int    `mapstructure:"METRICS_PORT"`
+}
+
+func LoadConfig(path string) (ApplicationConfig, error) {
+	viper.AddConfigPath(path)
+	viper.SetConfigName("app")
+	viper.SetConfigType("env")
+
+	viper.AutomaticEnv()
+
+	err := viper.ReadInConfig()
+	if err != nil {
+		return ApplicationConfig{}, err
+	}
+
+	config := ApplicationConfig{}
+
+	err = viper.Unmarshal(&config)
+	if err != nil {
+		return ApplicationConfig{}, err
+	}
+
+	return config, nil
+}
+
 func main() {
 	ctx := context.Background()
 
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 
+	config, err := LoadConfig(".")
+	if err != nil {
+		logger.Fatal("failed to load application config", zap.Error(err))
+	}
+
 	jaegerExporter, err := otelJaegerExporter.New(
 		otelJaegerExporter.WithCollectorEndpoint(
-			otelJaegerExporter.WithEndpoint("http://localhost:14268/api/traces"),
+			otelJaegerExporter.WithEndpoint(config.JaegerEndpoint),
 		),
 	)
 	if err != nil {
@@ -41,7 +77,7 @@ func main() {
 		otelTraceSdk.WithSampler(otelTraceSdk.AlwaysSample()),
 		otelTraceSdk.WithResource(otelSdkResource.NewWithAttributes(
 			otelSemconv.SchemaURL,
-			otelSemconv.ServiceNameKey.String("products"),
+			otelSemconv.ServiceNameKey.String(config.ServiceName),
 		)),
 	)
 
@@ -55,7 +91,7 @@ func main() {
 		otelPropagation.Baggage{},
 	))
 
-	tracer := otel.Tracer("products")
+	tracer := otel.Tracer(config.ServiceName)
 
 	productsInMemoryRepository := repositories.MustNewInMemoryProductsRepository(logger, tracer, 10)
 
@@ -71,7 +107,7 @@ func main() {
 	productsResolver := resolvers.MustNewProductsResolver(logger, tracer, application)
 
 	server := grpc.MustNewServer(grpc.ServerInput{
-		Port:   8081,
+		Port:   config.GrpcServerPort,
 		Logger: logger,
 		Registrator: func(server gGRPC.ServiceRegistrar) {
 			protog.RegisterProductsServiceServer(server, productsResolver)
@@ -79,8 +115,10 @@ func main() {
 	})
 
 	go func() {
+		port := fmt.Sprintf(":%d", config.MetricsPort)
+
 		http.Handle("/metrics", promhttp.Handler())
-		http.ListenAndServe(":2112", nil)
+		http.ListenAndServe(port, nil)
 	}()
 
 	if err := server.Run(ctx); err != nil {
