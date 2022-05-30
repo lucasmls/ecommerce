@@ -209,9 +209,9 @@ func (s *ListSuite) SetupTest() {
 	ctx := context.Background()
 
 	products := []domain.Product{
-		{1, "Iphone 13", "Cool", 4500},
-		{2, "Macbook Pro M1 Max", "Fast!", 16500},
-		{3, "Macbook Air M1", "Nice!", 6900},
+		{ID: 1, Name: "Iphone 13", Description: "Cool", Price: 4500},
+		{ID: 2, Name: "Macbook Pro M1 Max", Description: "Fast!", Price: 16500},
+		{ID: 3, Name: "Macbook Air M1", Description: "Nice!", Price: 6900},
 	}
 
 	for _, product := range products {
@@ -228,9 +228,9 @@ func (s *ListSuite) SetupTest() {
 func (s *ListSuite) Test_List() {
 	s.Run("Should list all products that were stored", func() {
 		expectedResult := []domain.Product{
-			{1, "Iphone 13", "Cool", 4500},
-			{2, "Macbook Pro M1 Max", "Fast!", 16500},
-			{3, "Macbook Air M1", "Nice!", 6900},
+			{ID: 1, Name: "Iphone 13", Description: "Cool", Price: 4500},
+			{ID: 2, Name: "Macbook Pro M1 Max", Description: "Fast!", Price: 16500},
+			{ID: 3, Name: "Macbook Air M1", Description: "Nice!", Price: 6900},
 		}
 
 		ctx := context.Background()
@@ -244,7 +244,7 @@ func (s *ListSuite) Test_List() {
 
 	s.Run("Should list only the products that matches the provided filter", func() {
 		expectedResult := []domain.Product{
-			{1, "Iphone 13", "Cool", 4500},
+			{ID: 1, Name: "Iphone 13", Description: "Cool", Price: 4500},
 		}
 
 		ctx := context.Background()
