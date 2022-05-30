@@ -151,6 +151,12 @@ func (r *ProductsResolver) Update(ctx context.Context, req *pb.Product) (*pb.Upd
 	})
 	if err != nil {
 		if errors.Is(err, domain.ErrProductNotFound) {
+			r.Logger.Debug(
+				"the provided product to be updated was not found",
+				zap.Error(err),
+				zap.Any("product", product),
+			)
+
 			return nil, status.Error(codes.NotFound, err.Error())
 		}
 
