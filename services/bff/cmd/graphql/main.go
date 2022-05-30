@@ -47,6 +47,7 @@ func main() {
 
 	tracingProvider := tracingSdk.NewTracerProvider(
 		tracingSdk.WithBatcher(jaegerExporter),
+		tracingSdk.WithSampler(tracingSdk.AlwaysSample()),
 		tracingSdk.WithResource(tracingSdkResource.NewWithAttributes(
 			semconv.SchemaURL,
 			semconv.ServiceNameKey.String("bff"),
