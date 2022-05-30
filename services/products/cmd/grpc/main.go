@@ -9,9 +9,9 @@ import (
 	"github.com/lucasmls/ecommerce/services/products/app"
 	resolvers "github.com/lucasmls/ecommerce/services/products/ports/grpc"
 	protog "github.com/lucasmls/ecommerce/services/products/ports/grpc/proto"
+	"github.com/lucasmls/ecommerce/shared/env"
 	"github.com/lucasmls/ecommerce/shared/grpc"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/spf13/viper"
 	otel "go.opentelemetry.io/otel"
 	otelJaegerExporter "go.opentelemetry.io/otel/exporters/jaeger"
 	otelPropagation "go.opentelemetry.io/otel/propagation"
@@ -29,35 +29,13 @@ type ApplicationConfig struct {
 	MetricsPort    int    `mapstructure:"METRICS_PORT"`
 }
 
-func LoadConfig(path string) (ApplicationConfig, error) {
-	viper.AddConfigPath(path)
-	viper.SetConfigName("app")
-	viper.SetConfigType("env")
-
-	viper.AutomaticEnv()
-
-	err := viper.ReadInConfig()
-	if err != nil {
-		return ApplicationConfig{}, err
-	}
-
-	config := ApplicationConfig{}
-
-	err = viper.Unmarshal(&config)
-	if err != nil {
-		return ApplicationConfig{}, err
-	}
-
-	return config, nil
-}
-
 func main() {
 	ctx := context.Background()
 
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 
-	config, err := LoadConfig(".")
+	config, err := env.LoadConfig[ApplicationConfig]()
 	if err != nil {
 		logger.Fatal("failed to load application config", zap.Error(err))
 	}
