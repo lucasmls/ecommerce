@@ -23,10 +23,11 @@ import (
 )
 
 type ApplicationConfig struct {
-	ServiceName    string `mapstructure:"SERVICE_NAME"`
-	JaegerEndpoint string `mapstructure:"JAEGER_ENDPOINT"`
-	GrpcServerPort int    `mapstructure:"GRPC_SERVER_PORT"`
-	MetricsPort    int    `mapstructure:"METRICS_PORT"`
+	ServiceName              string `mapstructure:"SERVICE_NAME"`
+	JaegerEndpoint           string `mapstructure:"JAEGER_ENDPOINT"`
+	GrpcServerPort           int    `mapstructure:"GRPC_SERVER_PORT"`
+	MetricsPort              int    `mapstructure:"METRICS_PORT"`
+	PostgresConnectionString string `mapstructure:"PG_CONNECTION_STRING"`
 }
 
 func main() {
@@ -70,17 +71,10 @@ func main() {
 
 	tracer := otel.Tracer(config.ServiceName)
 
-	productsInMemoryRepository := repositories.MustNewInMemoryProductsRepository(logger, tracer, 10)
+	// productsInMemoryRepository := repositories.MustNewInMemoryProductsRepository(logger, tracer, 10)
+	pgProductsRepository := repositories.MustNewPgProductsRepository(config.PostgresConnectionString)
 
-	// pgProductsRepository, err := repositories.NewPgProductsRepository(
-	// 	"dbname=products_service user=postgres password=postgres host=localhost port=5432 sslmode=disable",
-	// )
-	// if err != nil {
-	// 	logger.Error("failed to instantiate PgProductsRepository", zap.Error(err))
-	// 	return
-	// }
-
-	application := app.MustNewApplication(logger, tracer, productsInMemoryRepository)
+	application := app.MustNewApplication(logger, tracer, pgProductsRepository)
 	productsResolver := resolvers.MustNewProductsResolver(logger, tracer, application)
 
 	server := grpc.MustNewServer(grpc.ServerInput{

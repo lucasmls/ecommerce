@@ -1,6 +1,6 @@
 
-include .env
-export $(shell sed 's/=.*//' .env)
+include app.env
+export $(shell sed 's/=.*//' app.env)
 
 GOPATH=$(shell go env GOPATH)
 
