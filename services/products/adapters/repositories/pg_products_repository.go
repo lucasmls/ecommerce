@@ -28,6 +28,10 @@ func NewPgProductsRepository(connectionString string) (*PgProductsRepository, er
 		db: db,
 	}
 
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+
 	return repository, nil
 }
 
