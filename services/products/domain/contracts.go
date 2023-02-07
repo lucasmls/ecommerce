@@ -11,8 +11,18 @@ type Application interface {
 	// RegisterProduct registers a new Product
 	RegisterProduct(context.Context, Product) (Product, error)
 
-	// UpdateProduct udpates a Product
+	// UpdateProduct updates a Product
 	UpdateProduct(context.Context, Product) (Product, error)
+
+	// DeleteProduct deletes a Product
+	DeleteProduct(context.Context, int) error
+}
+
+// CLI defines the boundary interfaces of the application
+// It should be called by the ports
+type CLI interface {
+	// RegisterProduct registers a new Product
+	RegisterProduct(context.Context, Product) (Product, error)
 
 	// DeleteProduct deletes a Product
 	DeleteProduct(context.Context, int) error
