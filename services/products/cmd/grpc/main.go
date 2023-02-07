@@ -71,10 +71,10 @@ func main() {
 
 	tracer := otel.Tracer(config.ServiceName)
 
-	// productsInMemoryRepository := repositories.MustNewInMemoryProductsRepository(logger, tracer, 10)
-	pgProductsRepository := repositories.MustNewPgProductsRepository(config.PostgresConnectionString)
+	inMemoryProductsRepository := repositories.MustNewInMemoryProductsRepository(logger, tracer, 10)
+	// postgresProductsRepository := repositories.MustNewPgProductsRepository(config.PostgresConnectionString)
 
-	application := app.MustNewApplication(logger, tracer, pgProductsRepository)
+	application := app.MustNewApplication(logger, tracer, inMemoryProductsRepository)
 	productsResolver := resolvers.MustNewProductsResolver(logger, tracer, application)
 
 	server := grpc.MustNewServer(grpc.ServerInput{
@@ -89,7 +89,7 @@ func main() {
 		port := fmt.Sprintf(":%d", config.MetricsPort)
 
 		http.Handle("/metrics", promhttp.Handler())
-		http.ListenAndServe(port, nil)
+		_ = http.ListenAndServe(port, nil)
 	}()
 
 	if err := server.Run(ctx); err != nil {
